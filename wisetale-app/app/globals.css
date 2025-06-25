@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer utilities {
+  .bg-pattern {
+    background-image: radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(20, 184, 166, 0.1) 0%, transparent 50%);
+  }
+
+  .dark .bg-pattern {
+    background-image: radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(20, 184, 166, 0.15) 0%, transparent 50%);
+  }
+
+  .grid-bg {
+    background-image: linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  .dark .grid-bg {
+    background-image: linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  .geometric-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .geometric-bg .shape {
+    position: absolute;
+    border-radius: 50%;
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), rgba(20, 184, 166, 0.1));
+    animation: float 20s infinite linear;
+  }
+
+  .dark .geometric-bg .shape {
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.2), rgba(20, 184, 166, 0.2));
+  }
+
+  .geometric-bg .shape:nth-child(1) {
+    width: 100px;
+    height: 100px;
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+  }
+
+  .geometric-bg .shape:nth-child(2) {
+    width: 150px;
+    height: 150px;
+    top: 60%;
+    right: 15%;
+    animation-delay: -7s;
+  }
+
+  .geometric-bg .shape:nth-child(3) {
+    width: 80px;
+    height: 80px;
+    bottom: 20%;
+    left: 20%;
+    animation-delay: -14s;
+  }
+
+  .orb-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .dark .orb-bg {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    33% {
+      transform: translateY(-30px) rotate(120deg);
+    }
+    66% {
+      transform: translateY(15px) rotate(240deg);
+    }
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      opacity: 0.1;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+  }
+
+  .animate-in {
+    opacity: 1 !important;
+    transform: translate(0) !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .geometric-bg .shape,
+    .orb-bg {
+      animation: none;
+    }
+  }
+
+  /* Smooth theme transitions */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+}

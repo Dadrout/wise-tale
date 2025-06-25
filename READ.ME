@@ -1,0 +1,46 @@
+# WiseTale — AI-Powered Story-Based Learning for Humanities
+
+WiseTale is an AI-driven educational platform that transforms complex topics from humanities subjects (such as History, Geography, Philosophy, and Social Studies) into emotionally engaging and easily digestible **short video fairy tales**. The project is currently focused on humanities education and is designed for students, self-learners, and educators seeking intuitive and story-rich content.
+
+## 🚀 What It Does
+
+WiseTale generates human-like video explainers with audio narration using generative AI. The user selects a subject and topic (e.g., "World War I", "Continental Drift", or "Utilitarianism"), and WiseTale produces:
+
+- 🧠 A clear, accurate explanation in the format of a short story or allegory.
+- 🎥 A generated video scene visualizing the concept (Runway/Sora).
+- 🎙️ An AI-generated voiceover (ElevenLabs).
+- 📄 Transcript of the explanation (via GPT-4o).
+- 🧪 (Coming soon) Flashcards and mini-quizzes for reinforcement.
+
+The platform is **accessible via web interface** and is optimized for English-speaking users aged 13–25, especially those seeking more intuitive and less academic learning formats.
+
+---
+
+## 🧰 Tech Stack
+
+### Frontend
+- **Framework**: React / Next.js
+- **Hosting**: Vercel
+- **Design**: V0.dev + Tailwind CSS (UI prototyping)
+- **Auth**: Clerk / Supabase Auth (optional)
+
+### Backend
+- **Framework**: FastAPI (Python)
+- **AI**:
+  - GPT-4o (OpenAI) — explanation and storytelling
+  - ElevenLabs — voice narration
+  - Runway / Sora — video generation
+- **Database**: Supabase (PostgreSQL)
+- **Cache (optional)**: Redis
+
+### Dev Tools
+- **Cursor** — AI pair programming
+- **Excalidraw** — system diagrams
+- **CapCut / Descript** — video edits if needed
+- **Docker** — containerized development
+- **CI/CD**: GitHub Actions / Railway
+
+---
+
+## 📦 Project Structure
+

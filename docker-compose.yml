@@ -1,0 +1,40 @@
+# docker-compose for WiseTale full stack
+version: '3.8'
+
+services:
+  backend:
+    build: ./wisetale-api
+    container_name: wisetale-backend
+    env_file:
+      - ./wisetale-api/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./wisetale-api:/app
+
+  frontend:
+    build: ./wisetale-app
+    container_name: wisetale-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./wisetale-app:/app
+    command: npm run dev
+
+  landing:
+    build: ./wisetale-landing
+    container_name: wisetale-landing
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./wisetale-landing:/app
+    command: npm run dev
+
+  redis:
+    image: redis:7
+    container_name: wisetale-redis
+    ports:
+      - "6379:6379" 

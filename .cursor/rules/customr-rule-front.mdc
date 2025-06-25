@@ -1,0 +1,121 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+  "frontendRules": [
+    "Use Next.js 14 with App Router and TypeScript",
+    "Use TailwindCSS for styling and maintain consistent spacing, sizing, and responsive behavior",
+    "Use Shadcn UI for components (Button, Card, etc)",
+    "Structure pages inside /app/, and components inside /components/",
+    "Use fetch or swr to communicate with backend endpoints",
+    "All text and options must be in English only",
+    "Code should be clean, readable, and modular",
+    "Use Framer Motion for animations when applicable",
+    "Do not use external heavy libraries unless explicitly approved",
+    "Include mobile responsiveness as a must",
+    "Implement light/dark theme switch later (optional)",
+    "Use dynamic routes and loading states"
+  ],
+  "additionalFrontendRules": [
+    // Architecture & Organization
+    "Separate business logic into custom hooks under /hooks directory",
+    "Keep UI components pure and stateless when possible",
+    "Use /lib directory for utility functions and shared logic",
+    
+    // Components
+    "Create reusable UI components in /components/ui/",
+    "Document complex components with JSDoc comments",
+    "Split large components into smaller, focused pieces",
+    
+    // State Management
+    "Use React Context for global state when needed",
+    "Prefer local state for component-specific data",
+    
+    // Performance
+    "Implement proper code splitting using Next.js dynamic imports",
+    "Optimize images using Next.js Image component",
+    "Use proper meta tags and SEO practices",
+    
+    // Testing & Quality
+    "Write unit tests for critical components",
+    "Use TypeScript strict mode",
+    "Implement proper error boundaries",
+    
+    // Assets & Media
+    "Store static assets in /public directory",
+    "Use SVGs for icons when possible",
+    "Optimize media assets before committing",
+    
+    // Security
+    "Sanitize user inputs",
+    "Implement proper CORS policies",
+    "Use environment variables for sensitive data"
+  ],
+  "extendedFrontendRules": [
+    // Existing Rules (Keep these)
+    "Use Next.js 14 with App Router and TypeScript",
+    "Use TailwindCSS for styling",
+    "Use Shadcn UI for components",
+    "Structure pages inside /app/, components inside /components/",
+    "Use fetch or swr to communicate with backend endpoints",
+    "All text and options must be in English only",
+    "Code should be clean, readable, and modular",
+    "Use Framer Motion for animations",
+    "Do not use external heavy libraries unless explicitly approved",
+    "Include mobile responsiveness as a must",
+    "Use dynamic routes and loading states",
+    
+    // New Rules Based on Project Description
+    
+    // Video & Animation
+    "Implement HTML5 video player with custom controls for story playback",
+    "Support subtitles/closed captions for accessibility",
+    "Use progressive loading for video content",
+    "Implement video preloading for smooth transitions",
+    
+    // Performance & Optimization
+    "Optimize all media assets before delivery",
+    "Implement lazy loading for images and components",
+    "Use CDN for delivering video content",
+    "Cache API responses using SWR or React Query",
+    
+    // Accessibility & UX
+    "Follow WCAG guidelines for accessibility",
+    "Support screen readers and keyboard navigation",
+    "Implement high contrast mode option",
+    "Allow font size adjustments",
+    "Support motion reduction preferences",
+    
+    // State Management & Data
+    "Use React Context for global theme/user preferences",
+    "Implement local storage for progress saving",
+    "Handle offline state gracefully",
+    
+    // Interactive Features
+    "Add progress tracking for stories",
+    "Implement rating/feedback system after stories",
+    "Support quiz/interactive elements after stories",
+    "Add gamification elements (badges, points)",
+    
+    // Design System
+    "Maintain consistent spacing using Tailwind classes",
+    "Use a defined color palette for light/dark themes",
+    "Implement responsive breakpoints (mobile, tablet, desktop)",
+    "Create reusable animation components",
+    
+    // Error Handling
+    "Implement error boundaries for video playback",
+    "Show meaningful error messages to users",
+    "Add fallback content for failed media loads",
+    
+    // Security
+    "Sanitize user inputs",
+    "Implement proper CORS policies",
+    "Use environment variables for sensitive data",
+    
+    // Testing
+    "Write unit tests for critical components",
+    "Add E2E tests for core user flows",
+    "Test across different devices and browsers"
+  ],
