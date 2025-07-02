@@ -1,9 +1,10 @@
 # docker-compose for WiseTale full stack
-version: '3.8'
 
 services:
   backend:
-    build: ./wisetale-api
+    build: 
+      context: ./wisetale-api
+      target: base
     container_name: wisetale-backend
     env_file:
       - ./wisetale-api/.env
@@ -16,25 +17,29 @@ services:
       - ./wisetale-api:/app
 
   frontend:
-    build: ./wisetale-app
+    build: 
+      context: ./wisetale-app
+      target: dev
     container_name: wisetale-frontend
     ports:
-      - "3000:3000"
+      - "3001:3001"
     volumes:
       - ./wisetale-app:/app
     command: npm run dev
 
   landing:
-    build: ./wisetale-landing
+    build: 
+      context: ./wisetale-landing
+      target: dev
     container_name: wisetale-landing
     ports:
-      - "3001:3000"
+      - "3000:3000"
     volumes:
       - ./wisetale-landing:/app
     command: npm run dev
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: wisetale-redis
     ports:
       - "6379:6379" 

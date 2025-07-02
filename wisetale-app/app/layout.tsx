@@ -10,7 +10,17 @@ export const metadata: Metadata = {
   title: "WiseTale - Transform Learning Into Magical Stories",
   description:
     "AI-powered educational storytelling platform that transforms complex humanities topics into engaging animated fairy tales for students aged 10-18.",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/wisetale-logo.png', sizes: '192x192', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/wisetale-logo.png', sizes: '180x180', type: 'image/png' }
+    ],
+    shortcut: '/favicon.png'
+  }
 }
 
 export default function RootLayout({

@@ -1,11 +1,18 @@
 fastapi==0.109.2
 uvicorn==0.27.1
 redis==5.0.1
-supabase==2.3.1
 python-dotenv==1.0.1
 pydantic==2.6.1
-pydantic-settings==2.1.0
-httpx==0.25.2
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.9 
+requests==2.31.0
+
+# Firebase integration
+firebase-admin==6.4.0
+
+# Video generation and media processing  
+moviepy==1.0.3
+pillow==10.2.0
+ffmpeg-python==0.2.0
+
+# Optional AI services (можно добавить позже)
+# openai==1.7.1
+# elevenlabs==0.2.26 

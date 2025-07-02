@@ -4,13 +4,21 @@ WiseTale is an AI-driven educational platform that transforms complex topics fro
 
 ## 🚀 What It Does
 
-WiseTale generates human-like video explainers with audio narration using generative AI. The user selects a subject and topic (e.g., "World War I", "Continental Drift", or "Utilitarianism"), and WiseTale produces:
+WiseTale creates engaging educational videos through an intelligent AI pipeline. Here's how it works:
 
-- 🧠 A clear, accurate explanation in the format of a short story or allegory.
-- 🎥 A generated video scene visualizing the concept (Runway/Sora).
-- 🎙️ An AI-generated voiceover (ElevenLabs).
-- 📄 Transcript of the explanation (via GPT-4o).
-- 🧪 (Coming soon) Flashcards and mini-quizzes for reinforcement.
+**User Input**: Simply enter a subject (History, Geography, Philosophy) and a topic (e.g., "French Revolution", "Ancient Egypt", "Socratic Method")
+
+**AI Generation Pipeline**:
+1. 🤖 **AI Story Generation**: GPT-4 creates an engaging narrative explaining the topic
+2. 🎙️ **Text-to-Speech**: ElevenLabs converts the story into natural audio narration  
+3. 📸 **Image Collection**: Automatically searches Pexels for relevant high-quality images
+4. 🎬 **Video Creation**: Generates a slideshow video with:
+   - Smooth transitions between images
+   - Real-time subtitles synchronized with audio
+   - Professional visual effects and timing
+   - Optimized for educational engagement
+
+**Output**: A complete educational video with story narration, visuals, and subtitles - ready to watch and learn!
 
 The platform is **accessible via web interface** and is optimized for English-speaking users aged 13–25, especially those seeking more intuitive and less academic learning formats.
 
@@ -26,12 +34,14 @@ The platform is **accessible via web interface** and is optimized for English-sp
 
 ### Backend
 - **Framework**: FastAPI (Python)
-- **AI**:
-  - GPT-4o (OpenAI) — explanation and storytelling
-  - ElevenLabs — voice narration
-  - Runway / Sora — video generation
+- **AI & Media**:
+  - GPT-4 (OpenAI) — story text generation
+  - ElevenLabs — text-to-speech conversion
+  - Pexels API — high-quality educational images
+  - MoviePy — video slideshow creation with transitions
 - **Database**: Supabase (PostgreSQL)
-- **Cache (optional)**: Redis
+- **Cache**: Redis (for API responses and media)
+- **Media Processing**: FFmpeg, Pillow for image/video handling
 
 ### Dev Tools
 - **Cursor** — AI pair programming

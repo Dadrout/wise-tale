@@ -11,7 +11,17 @@ export const metadata: Metadata = {
   title: "WiseTale - Learn History as a Fairy Tale",
   description:
     "Transform complex humanities topics into engaging audio-visual stories. Make learning fun, memorable, and magical for students aged 10-18.",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/images/wisetale-logo.png', sizes: '192x192', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/images/wisetale-logo.png', sizes: '180x180', type: 'image/png' }
+    ],
+    shortcut: '/favicon.png'
+  }
 }
 
 export default function RootLayout({

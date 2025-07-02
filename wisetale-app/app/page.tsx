@@ -4,42 +4,96 @@ import { useState } from "react"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { WiseTaleLogo } from "@/components/wisetale-logo"
+import { EnhancedVideoPlayer } from "@/components/enhanced-video-player"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { BookOpen, Sparkles, Play, Globe, Brain, Clock, Download, Share2, Volume2 } from "lucide-react"
 
 export default function WiseTaleApp() {
   const [subject, setSubject] = useState("")
   const [topic, setTopic] = useState("")
-  const [difficulty, setDifficulty] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
   const [showTranscript, setShowTranscript] = useState(true)
+  const [generatedVideo, setGeneratedVideo] = useState<any>(null)
+  const [generationStatus, setGenerationStatus] = useState("")
+  const [generationProgress, setGenerationProgress] = useState(0)
 
   const handleGenerate = async () => {
-    if (!subject || !topic || !difficulty) return
+    if (!subject || !topic) return
 
     setIsGenerating(true)
-    // Simulate video generation
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-    setIsGenerating(false)
-    setHasGenerated(true)
+    setGenerationProgress(0)
+    setGenerationStatus("🎭 Creating educational story...")
+    
+    try {
+      // Запускаем реальный таймер прогресса
+      let currentProgress = 0
+      const progressTimer = setInterval(() => {
+        currentProgress += 2
+        if (currentProgress <= 15) {
+          setGenerationProgress(currentProgress)
+          setGenerationStatus("📚 Generating historical content...")
+        } else if (currentProgress <= 35) {
+          setGenerationProgress(currentProgress)
+          setGenerationStatus("🎵 Creating audio narration...")
+        } else if (currentProgress <= 60) {
+          setGenerationProgress(currentProgress)
+          setGenerationStatus("📷 Finding educational images...")
+        } else if (currentProgress <= 85) {
+          setGenerationProgress(currentProgress)
+          setGenerationStatus("🎬 Building video with transitions...")
+        } else if (currentProgress <= 95) {
+          setGenerationProgress(currentProgress)
+          setGenerationStatus("✨ Finalizing your story...")
+        }
+      }, 200) // Обновляем каждые 200ms для плавности
+
+      const response = await fetch('http://localhost:8000/api/v1/generate/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject,
+          topic,
+          user_id: 123, // temporary user ID
+        }),
+      })
+      
+      clearInterval(progressTimer)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setGenerationProgress(100)
+        setGenerationStatus("🎉 Your magical story is ready!")
+        setGeneratedVideo(data)
+        setHasGenerated(true)
+      } else {
+        console.error('Generation failed:', await response.text())
+        setGenerationStatus("❌ Generation failed")
+        setGenerationProgress(0)
+      }
+    } catch (error) {
+      console.error('Error generating video:', error)
+      setGenerationStatus("❌ Network error")
+      setGenerationProgress(0)
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false)
+        setGenerationProgress(0)
+        setGenerationStatus("")
+      }, 2000)
+    }
   }
 
-  const sampleTranscript = `Welcome to this enchanting tale of the French Revolution! 
-
-  Our story begins in the grand palace of Versailles, where King Louis XVI lived in luxury while his people struggled with hunger and poverty. The year was 1789, and France was on the brink of monumental change.
-
-  Picture Marie Antoinette, the queen who allegedly said "Let them eat cake" when told her people had no bread. Though this quote may be legend, it perfectly captures the disconnect between the royal court and ordinary French citizens.
-
-  The revolution erupted like a thunderstorm, beginning with the storming of the Bastille fortress on July 14th, 1789. This moment became a symbol of the people's power against tyranny, and we still celebrate Bastille Day in France today.
-
-  Through years of upheaval, from the Reign of Terror to the rise of Napoleon, this period transformed not just France, but the entire world's understanding of democracy, human rights, and the power of the people.`
+  const getTranscript = () => {
+    return generatedVideo?.transcript || "Your story transcript will appear here after generation..."
+  }
 
   const getSubjectIcon = (subjectName: string) => {
     switch (subjectName) {
@@ -195,62 +249,10 @@ export default function WiseTaleApp() {
                     />
                   </div>
 
-                  {/* Difficulty Level */}
-                  <div className="space-y-4">
-                    <Label className="text-base font-semibold text-gray-800 dark:text-gray-200">Difficulty Level</Label>
-                    <RadioGroup value={difficulty} onValueChange={setDifficulty} className="space-y-3">
-                      <div className="flex items-center space-x-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-600 transition-all cursor-pointer">
-                        <RadioGroupItem
-                          value="beginner"
-                          id="beginner"
-                          className="text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-600 data-[state=checked]:bg-purple-600 dark:data-[state=checked]:bg-purple-500"
-                        />
-                        <Label htmlFor="beginner" className="text-base font-medium cursor-pointer flex-1">
-                          <div>
-                            <div className="font-semibold text-gray-800 dark:text-gray-200">Beginner</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Simple explanations for newcomers
-                            </div>
-                          </div>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:bg-sky-50 dark:hover:bg-sky-900/20 hover:border-sky-300 dark:hover:border-sky-600 transition-all cursor-pointer">
-                        <RadioGroupItem
-                          value="student"
-                          id="student"
-                          className="text-sky-600 dark:text-sky-400 border-gray-300 dark:border-gray-600 data-[state=checked]:bg-sky-600 dark:data-[state=checked]:bg-sky-500"
-                        />
-                        <Label htmlFor="student" className="text-base font-medium cursor-pointer flex-1">
-                          <div>
-                            <div className="font-semibold text-gray-800 dark:text-gray-200">Student</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Detailed academic explanations
-                            </div>
-                          </div>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-600 transition-all cursor-pointer">
-                        <RadioGroupItem
-                          value="expert"
-                          id="expert"
-                          className="text-teal-600 dark:text-teal-400 border-gray-300 dark:border-gray-600 data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500"
-                        />
-                        <Label htmlFor="expert" className="text-base font-medium cursor-pointer flex-1">
-                          <div>
-                            <div className="font-semibold text-gray-800 dark:text-gray-200">Expert</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Advanced analysis and insights
-                            </div>
-                          </div>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
                   {/* Generate Button */}
                   <Button
                     onClick={handleGenerate}
-                    disabled={!subject || !topic || !difficulty || isGenerating}
+                    disabled={!subject || !topic || isGenerating}
                     className="w-full h-14 rounded-xl bg-gradient-to-r from-purple-600 via-sky-600 to-teal-600 hover:from-purple-700 hover:via-sky-700 hover:to-teal-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 border-0"
                   >
                     {isGenerating ? (
@@ -281,85 +283,45 @@ export default function WiseTaleApp() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Video Player Block */}
-                  <div className="aspect-video bg-gradient-to-br from-purple-100 via-sky-100 to-teal-100 dark:from-purple-900/20 dark:via-sky-900/20 dark:to-teal-900/20 rounded-xl flex items-center justify-center border-2 border-dashed border-purple-300 dark:border-purple-700 relative overflow-hidden">
-                    {hasGenerated ? (
-                      <div className="text-center relative z-10">
-                        <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-teal-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-lg hover:scale-110 transition-transform duration-300 cursor-pointer">
-                          <Play className="w-10 h-10 text-white ml-1" />
+                  <div className="aspect-video bg-black rounded-xl relative overflow-hidden">
+                    {isGenerating ? (
+                      // Generation Progress
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 to-teal-900/90 flex flex-col items-center justify-center text-white">
+                        <div className="w-20 h-20 border-4 border-white border-t-transparent rounded-full animate-spin mb-6"></div>
+                        <h3 className="text-xl font-bold mb-4">{generationStatus}</h3>
+                        <div className="w-64 bg-white/20 rounded-full h-3 mb-2">
+                          <div 
+                            className="bg-gradient-to-r from-purple-400 to-teal-400 h-3 rounded-full transition-all duration-500"
+                            style={{ width: `${generationProgress}%` }}
+                          ></div>
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                          {topic ? `"${topic}"` : "Your Story"} is Ready!
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4">
-                          {subject && `${subject.charAt(0).toUpperCase() + subject.slice(1)} • `}
-                          {difficulty && `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Level`}
-                        </p>
-                        <div className="flex items-center justify-center gap-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-lg border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:hover:text-gray-200 bg-white dark:bg-gray-800/60"
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-lg border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:hover:text-gray-200 bg-white dark:bg-gray-800/60"
-                          >
-                            <Share2 className="w-4 h-4 mr-2" />
-                            Share
-                          </Button>
-                        </div>
+                        <p className="text-sm opacity-80">{generationProgress}% complete</p>
                       </div>
+                    ) : hasGenerated && generatedVideo ? (
+                      // Enhanced Video Player
+                      <EnhancedVideoPlayer
+                        videoUrl={generatedVideo.video_url}
+                        posterUrl={generatedVideo.images_used?.[0]}
+                        title={`${subject} - ${topic}`}
+                        className="w-full h-full"
+                      />
                     ) : (
-                      <div className="text-center relative z-10">
-                        <div className="w-20 h-20 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center mb-4 mx-auto">
-                          <Play className="w-10 h-10 text-gray-500 dark:text-gray-400" />
+                      // Default State
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-sky-100 to-teal-100 dark:from-purple-900/20 dark:via-sky-900/20 dark:to-teal-900/20 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-20 h-20 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <Play className="w-10 h-10 text-gray-500 dark:text-gray-400" />
+                          </div>
+                          <p className="text-gray-500 dark:text-gray-400 font-medium">
+                            Your fairy tale video will appear here
+                          </p>
+                          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                            Choose a subject and topic to create your story
+                          </p>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400 font-medium">
-                          Your generated video will appear here
-                        </p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                          Fill out the form and click "Generate Video" to begin
-                        </p>
                       </div>
                     )}
-
-                    {/* Magical sparkles background */}
-                    <div className="absolute inset-0 opacity-20">
-                      <Sparkles className="absolute top-4 left-4 w-4 h-4 text-purple-400" />
-                      <Sparkles className="absolute top-8 right-8 w-3 h-3 text-sky-400" />
-                      <Sparkles className="absolute bottom-6 left-8 w-3 h-3 text-teal-400" />
-                      <Sparkles className="absolute bottom-4 right-4 w-4 h-4 text-purple-400" />
-                    </div>
                   </div>
-
-                  {/* Video Controls (when generated) */}
-                  {hasGenerated && (
-                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-4">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:hover:text-gray-200"
-                        >
-                          <Play className="w-4 h-4" />
-                        </Button>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">3:24</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Volume2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                          <div className="w-12 h-2 bg-purple-600 dark:bg-purple-500 rounded-full"></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Transcript Section */}
                   {hasGenerated && (
@@ -383,7 +345,7 @@ export default function WiseTaleApp() {
                         {showTranscript && (
                           <div className="bg-gradient-to-br from-purple-50 via-sky-50 to-teal-50 dark:from-purple-900/10 dark:via-sky-900/10 dark:to-teal-900/10 rounded-xl p-6 border border-purple-100 dark:border-purple-800">
                             <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                              {sampleTranscript}
+                              {getTranscript()}
                             </div>
                           </div>
                         )}
