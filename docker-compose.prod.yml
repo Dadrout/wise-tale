@@ -1,0 +1,168 @@
+# Production docker-compose for WiseTale
+# Optimized for performance, security, and scalability
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: ./wisetale-api
+      target: production
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: wisetale-backend:latest
+    container_name: wisetale-backend-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ./wisetale-api/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Main App Service
+  frontend:
+    build:
+      context: ./wisetale-app
+      target: production
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: wisetale-frontend:latest
+    container_name: wisetale-frontend-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    env_file:
+      - ./wisetale-app/.env
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Landing Page Service
+  landing:
+    build:
+      context: ./wisetale-landing
+      target: production
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: wisetale-landing:latest
+    container_name: wisetale-landing-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    env_file:
+      - ./wisetale-landing/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: wisetale-redis-prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: wisetale-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+      - landing
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  wisetale-network:
+    driver: bridge 

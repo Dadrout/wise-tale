@@ -61,3 +61,6 @@ redis_data/
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+backups/
+test.zip
+*.zip

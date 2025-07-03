@@ -1,0 +1,94 @@
+# Backend-only docker-compose for Digital Ocean
+# Used when frontend is deployed on Vercel
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: ./wisetale-api
+      target: prod
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: wisetale-backend:latest
+    container_name: wisetale-backend-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ./wisetale-api/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: wisetale-redis-prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # Nginx for API only (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: wisetale-nginx-api
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-api.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - wisetale-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  wisetale-network:
+    driver: bridge 

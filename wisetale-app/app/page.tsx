@@ -60,7 +60,9 @@ export default function WiseTaleApp() {
         }
       }, 200) // Обновляем каждые 200ms для плавности
 
-      const response = await fetch('http://localhost:8000/api/v1/generate/', {
+      // Use environment-aware API URL
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/v1/generate/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +152,7 @@ export default function WiseTaleApp() {
                 {t.home}
               </a>
               <a
-                href="http://localhost:3000"
+                href={process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:3000'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"

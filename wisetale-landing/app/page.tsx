@@ -195,7 +195,12 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white px-8 py-3 rounded-full text-lg font-semibold shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-110 hover:-translate-y-2 group"
-                onClick={() => window.location.href = 'http://localhost:3001'}
+                onClick={() => {
+                  // In production, use relative URL that nginx will proxy
+                  // In development, use direct localhost URL
+                  const appUrl = process.env.NODE_ENV === 'production' ? '/app' : 'http://localhost:3001'
+                  window.location.href = appUrl
+                }}
               >
                 <Play className="w-5 h-5 mr-2 transition-transform group-hover:scale-125" />
                 {t.landing.hero.startLearning}
@@ -219,7 +224,7 @@ export default function LandingPage() {
           <ScrollReveal direction="up" delay={1100}>
             <div className="relative max-w-4xl mx-auto">
               <YouTubeEmbed
-                videoId="bCpeV08GOdY"
+                videoId="NT_tcjf0Yl0"
                 title="WiseTale Demo - Transform Learning into Magical Stories"
                 className="hover:scale-105 transition-all duration-700 hover:shadow-3xl"
               />
