@@ -15,11 +15,11 @@ import { useAuth } from '@/hooks/use-auth'
 import { useLanguage } from '@/hooks/use-language'
 
 interface AuthModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  isOpen: boolean
+  onClose: () => void
 }
 
-export function AuthModal({ open, onOpenChange }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -44,7 +44,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         }
         await signUp(email, password)
       }
-      onOpenChange(false)
+      onClose()
       setEmail('')
       setPassword('')
       setConfirmPassword('')
@@ -56,7 +56,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>

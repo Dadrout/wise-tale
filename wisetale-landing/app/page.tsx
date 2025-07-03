@@ -28,6 +28,10 @@ import {
 import { YouTubeEmbed } from "@/components/youtube-embed"
 import { WaitlistForm } from "@/components/waitlist-form"
 import { AuthModal } from "@/components/auth-modal"
+import { useLanguage } from '@/hooks/use-language'
+import { useAuth } from '@/hooks/use-auth'
+import { Language } from '@/lib/i18n'
+import { Globe, Languages, LogOut, User } from 'lucide-react'
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -46,14 +50,45 @@ function ThemeToggle() {
   )
 }
 
+function LanguageSelector() {
+  const { language, setLanguage } = useLanguage()
+  
+  const languages = [
+    { code: 'en' as Language, name: 'English', flag: '🇺🇸' },
+    { code: 'ru' as Language, name: 'Русский', flag: '🇷🇺' },
+  ]
+  
+  const currentLanguage = languages.find(lang => lang.code === language)
+
+  return (
+    <div className="relative">
+      <select 
+        value={language}
+        onChange={(e) => setLanguage(e.target.value as Language)}
+        className="bg-white/80 dark:bg-gray-800/80 border border-purple-200 dark:border-purple-700 rounded-lg px-3 py-2 text-sm transition-all duration-300 hover:scale-110"
+      >
+        {languages.map((lang) => (
+          <option key={lang.code} value={lang.code}>
+            {lang.flag} {lang.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const [showTop, setShowTop] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
+  const { t } = useLanguage()
+  const { user, logout } = useAuth()
+  
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 200)
     window.addEventListener("scroll", onScroll)
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+  
   return (
     <>
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
@@ -92,14 +127,32 @@ export default function LandingPage() {
                 </span>
               </div>
               <div className="flex items-center space-x-4">
+                <LanguageSelector />
                 <ThemeToggle />
-                <Button
-                  variant="outline"
-                  className="border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:-translate-y-1"
-                  onClick={() => setAuthOpen(true)}
-                >
-                  Sign In
-                </Button>
+                {user ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
+                      {user.email}
+                    </span>
+                    <Button
+                      onClick={logout}
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950 transition-all duration-300 hover:scale-110"
+                    >
+                      <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">{t.signOut}</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:-translate-y-1"
+                    onClick={() => setAuthOpen(true)}
+                  >
+                    {t.signIn}
+                  </Button>
+                )}
               </div>
             </div>
           </ScrollReveal>
@@ -113,19 +166,19 @@ export default function LandingPage() {
           <ScrollReveal direction="up" delay={300}>
             <Badge className="mb-6 bg-purple-100 text-purple-700 hover:bg-purple-100 hover:scale-110 transition-all duration-300">
               <Sparkles className="w-4 h-4 mr-1 animate-pulse" />
-              Making Learning Magical
+              {t.landing.hero.badge}
             </Badge>
           </ScrollReveal>
 
           <ScrollReveal direction="up" delay={500}>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-to-r from-purple-600 via-sky-600 to-teal-600 bg-clip-text text-transparent animate-gradient">
-                Learn History as a
+                {t.landing.hero.title1}
               </span>
               <br />
               <div className="relative inline-block">
                 <span className="bg-gradient-to-r from-purple-700 via-pink-600 to-teal-700 bg-clip-text text-transparent font-extrabold animate-gradient">
-                  Fairy Tale
+                  {t.landing.hero.title2}
                 </span>
               </div>
             </h1>
@@ -133,8 +186,7 @@ export default function LandingPage() {
 
           <ScrollReveal direction="up" delay={700}>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Transform complex humanities topics into engaging audio-visual stories. Make learning fun, memorable, and
-              magical for students aged 10-18.
+              {t.landing.hero.subtitle}
             </p>
           </ScrollReveal>
 
@@ -146,7 +198,7 @@ export default function LandingPage() {
                 onClick={() => window.location.href = 'http://localhost:3001'}
               >
                 <Play className="w-5 h-5 mr-2 transition-transform group-hover:scale-125" />
-                Start Learning Now
+                {t.landing.hero.startLearning}
               </Button>
               <Button
                 variant="outline"
@@ -158,7 +210,7 @@ export default function LandingPage() {
                 }}
               >
                 <Volume2 className="w-5 h-5 mr-2 transition-transform group-hover:scale-125" />
-                Watch Demo
+                {t.landing.hero.watchDemo}
               </Button>
             </div>
           </ScrollReveal>
@@ -174,9 +226,9 @@ export default function LandingPage() {
 
               {/* Video description */}
               <div className="mt-6 text-center">
-                <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">See WiseTale in Action</p>
+                <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">{t.landing.hero.demoTitle}</p>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Watch how we transform complex history topics into engaging fairy tale stories
+                  {t.landing.hero.demoDescription}
                 </p>
               </div>
             </div>
@@ -188,10 +240,10 @@ export default function LandingPage() {
           <ScrollReveal direction="up">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 dark:text-gray-100">
-                Learning Made Simple
+                {t.landing.howItWorks.title}
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                Transform any humanities topic into an engaging story in just three easy steps
+                {t.landing.howItWorks.subtitle}
               </p>
             </div>
           </ScrollReveal>
@@ -200,22 +252,22 @@ export default function LandingPage() {
             {[
               {
                 icon: BookOpen,
-                title: "1. Choose Topic",
-                desc: "Select any humanities subject - history, philosophy, geography, or literature",
+                title: t.landing.howItWorks.step1Title,
+                desc: t.landing.howItWorks.step1Desc,
                 color: "purple",
                 delay: 200,
               },
               {
                 icon: Wand2,
-                title: "2. Let AI Narrate",
-                desc: "Our AI transforms complex topics into engaging, easy-to-understand fairy tales",
+                title: t.landing.howItWorks.step2Title,
+                desc: t.landing.howItWorks.step2Desc,
                 color: "sky",
                 delay: 400,
               },
               {
                 icon: Play,
-                title: "3. Watch & Listen",
-                desc: "Enjoy beautiful animations with professional voiceover and interactive quizzes",
+                title: t.landing.howItWorks.step3Title,
+                desc: t.landing.howItWorks.step3Desc,
                 color: "teal",
                 delay: 600,
               },
@@ -240,10 +292,10 @@ export default function LandingPage() {
           <ScrollReveal direction="up">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 dark:text-gray-100">
-                Magical Learning Features
+                {t.landing.features.title}
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                Everything you need to make humanities education engaging and memorable
+                {t.landing.features.subtitle}
               </p>
             </div>
           </ScrollReveal>
@@ -252,43 +304,43 @@ export default function LandingPage() {
             {[
               {
                 icon: Headphones,
-                title: "Professional Voiceover",
-                desc: "High-quality AI narration brings stories to life with engaging character voices",
+                title: t.landing.features.voiceoverTitle,
+                desc: t.landing.features.voiceoverDesc,
                 color: "purple",
                 delay: 100,
               },
               {
                 icon: Sparkles,
-                title: "Story-Style Learning",
-                desc: "Complex topics explained through memorable narratives and characters",
+                title: t.landing.features.storyTitle,
+                desc: t.landing.features.storyDesc,
                 color: "sky",
                 delay: 200,
               },
               {
                 icon: Brain,
-                title: "Interactive Quizzes",
-                desc: "Test understanding with fun quizzes that reinforce key concepts",
+                title: t.landing.features.quizzesTitle,
+                desc: t.landing.features.quizzesDesc,
                 color: "teal",
                 delay: 300,
               },
               {
                 icon: Clock,
-                title: "Perfect Length",
-                desc: "3-5 minute stories designed for optimal attention spans and retention",
+                title: t.landing.features.lengthTitle,
+                desc: t.landing.features.lengthDesc,
                 color: "purple",
                 delay: 400,
               },
               {
                 icon: Users,
-                title: "Multi-Age Appeal",
-                desc: "Content that engages students, parents, and teachers alike",
+                title: t.landing.features.multiAgeTitle,
+                desc: t.landing.features.multiAgeDesc,
                 color: "sky",
                 delay: 500,
               },
               {
                 icon: CheckCircle,
-                title: "Curriculum Aligned",
-                desc: "Stories designed to complement school curricula and learning objectives",
+                title: t.landing.features.curriculumTitle,
+                desc: t.landing.features.curriculumDesc,
                 color: "teal",
                 delay: 600,
               },
@@ -317,10 +369,10 @@ export default function LandingPage() {
           <ScrollReveal direction="up">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 dark:text-gray-100">
-                Choose Your Learning Adventure
+                {t.landing.pricing.title}
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                Start free and unlock unlimited magical learning experiences
+                {t.landing.pricing.subtitle}
               </p>
             </div>
           </ScrollReveal>
@@ -331,21 +383,21 @@ export default function LandingPage() {
               <Card className="relative p-8 bg-white/80 dark:bg-gray-800/80 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-700 hover:scale-110 hover:shadow-2xl hover:-translate-y-4">
                 <CardContent className="pt-0">
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Free Explorer</h3>
+                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t.landing.pricing.freePlan}</h3>
                     <div className="mb-4">
-                      <span className="text-4xl font-bold text-gray-800 dark:text-gray-100">$0</span>
+                      <span className="text-4xl font-bold text-gray-800 dark:text-gray-100">{t.landing.pricing.freePrice}</span>
                       <span className="text-gray-500 dark:text-gray-400">/month</span>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300">Perfect for trying out WiseTale</p>
+                    <p className="text-gray-600 dark:text-gray-300">{t.landing.pricing.freeDesc}</p>
                   </div>
 
                   <ul className="space-y-3 mb-8">
                     {[
-                      "3 stories per month",
-                      "Basic history & geography",
-                      "Standard quality audio",
-                      "Simple quizzes",
-                      "Mobile & web access",
+                      t.landing.pricing.freeFeature1,
+                      t.landing.pricing.freeFeature2,
+                      t.landing.pricing.freeFeature3,
+                      t.landing.pricing.freeFeature4,
+                      t.landing.pricing.freeFeature5,
                     ].map((feature, index) => (
                       <li key={index} className="flex items-center">
                         <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
@@ -358,7 +410,7 @@ export default function LandingPage() {
                     variant="outline"
                     className="w-full border-2 border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950 transition-all duration-300 hover:scale-105 hover:shadow-lg"
                   >
-                    Start Free
+                    {t.landing.pricing.tryFree}
                   </Button>
                 </CardContent>
               </Card>
@@ -370,30 +422,30 @@ export default function LandingPage() {
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 animate-bounce">
                   <Badge className="bg-gradient-to-r from-purple-600 to-teal-600 text-white px-4 py-1">
                     <Sparkles className="w-4 h-4 mr-1 animate-pulse" />
-                    Most Popular
+                    {t.landing.pricing.mostPopular}
                   </Badge>
                 </div>
                 <CardContent className="pt-0">
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Premium Storyteller</h3>
+                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t.landing.pricing.premiumPlan}</h3>
                     <div className="mb-4">
                       <span className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent">
-                        $9.99
+                        {t.landing.pricing.premiumPrice}
                       </span>
                       <span className="text-gray-500 dark:text-gray-400">/month</span>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300">Unlimited learning adventures</p>
+                    <p className="text-gray-600 dark:text-gray-300">{t.landing.pricing.premiumDesc}</p>
                   </div>
 
                   <ul className="space-y-3 mb-8">
                     {[
-                      "Unlimited stories",
-                      "All subjects & topics",
-                      "Premium HD audio & visuals",
-                      "Interactive quizzes & games",
-                      "Progress tracking",
-                      "Offline downloads",
-                      "Priority support",
+                      t.landing.pricing.premiumFeature1,
+                      t.landing.pricing.premiumFeature2,
+                      t.landing.pricing.premiumFeature3,
+                      t.landing.pricing.premiumFeature4,
+                      t.landing.pricing.premiumFeature5,
+                      t.landing.pricing.premiumFeature6,
+                      t.landing.pricing.premiumFeature7,
                     ].map((feature, index) => (
                       <li key={index} className="flex items-center">
                         <CheckCircle className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
@@ -403,7 +455,7 @@ export default function LandingPage() {
                   </ul>
 
                   <Button className="w-full bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white font-semibold transition-all duration-500 hover:scale-110 hover:shadow-lg hover:-translate-y-2">
-                    Get Premium
+                    {t.landing.pricing.getPremium}
                   </Button>
                 </CardContent>
               </Card>
@@ -414,23 +466,23 @@ export default function LandingPage() {
               <Card className="relative p-8 bg-white/80 dark:bg-gray-800/80 border-2 border-teal-200 dark:border-teal-700 hover:border-teal-300 dark:hover:border-teal-600 transition-all duration-700 hover:scale-110 hover:shadow-2xl hover:-translate-y-4">
                 <CardContent className="pt-0">
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Family Adventure</h3>
+                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t.landing.pricing.familyPlan}</h3>
                     <div className="mb-4">
-                      <span className="text-4xl font-bold text-teal-600">$19.99</span>
+                      <span className="text-4xl font-bold text-teal-600">{t.landing.pricing.familyPrice}</span>
                       <span className="text-gray-500 dark:text-gray-400">/month</span>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300">Perfect for families & homeschooling</p>
+                    <p className="text-gray-600 dark:text-gray-300">{t.landing.pricing.familyDesc}</p>
                   </div>
 
                   <ul className="space-y-3 mb-8">
                     {[
-                      "Everything in Premium",
-                      "Up to 6 family profiles",
-                      "Parental controls & reports",
-                      "Age-appropriate content",
-                      "Family learning goals",
-                      "Homeschool curriculum guide",
-                      "Priority family support",
+                      t.landing.pricing.familyFeature1,
+                      t.landing.pricing.familyFeature2,
+                      t.landing.pricing.familyFeature3,
+                      t.landing.pricing.familyFeature4,
+                      t.landing.pricing.familyFeature5,
+                      t.landing.pricing.familyFeature6,
+                      t.landing.pricing.familyFeature7,
                     ].map((feature, index) => (
                       <li key={index} className="flex items-center">
                         <CheckCircle className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" />
@@ -443,7 +495,7 @@ export default function LandingPage() {
                     variant="outline"
                     className="w-full border-2 border-teal-200 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950 transition-all duration-300 hover:scale-105 hover:shadow-lg"
                   >
-                    Start Family Trial
+                    {t.landing.pricing.startFamilyTrial}
                   </Button>
                 </CardContent>
               </Card>
@@ -453,9 +505,9 @@ export default function LandingPage() {
           {/* Additional Info */}
           <ScrollReveal direction="up" delay={800}>
             <div className="text-center mt-12">
-              <p className="text-gray-600 dark:text-gray-300 mb-4">All plans include our 30-day money-back guarantee</p>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">{t.landing.pricing.guaranteeText}</p>
               <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-                {["Cancel anytime", "No setup fees", "Secure payments"].map((item, index) => (
+                {[t.landing.pricing.cancelAnytime, t.landing.pricing.noSetupFees, t.landing.pricing.securePayments].map((item, index) => (
                   <div key={index} className="flex items-center hover:scale-110 transition-transform duration-300">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     {item}
@@ -471,10 +523,10 @@ export default function LandingPage() {
           <ScrollReveal direction="up">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 dark:text-gray-100">
-                Stories That Inspire
+                {t.landing.testimonials.title}
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                See how WiseTale transforms learning experiences for students and educators
+                {t.landing.testimonials.subtitle}
               </p>
             </div>
           </ScrollReveal>
@@ -482,27 +534,26 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                name: "Ms. Sarah Johnson",
-                role: "8th Grade History Teacher",
-                initials: "MS",
-                quote:
-                  "My students are actually excited about history class now! The Roman Empire story had them completely engaged.",
+                name: t.landing.testimonials.teacher1Name,
+                role: t.landing.testimonials.teacher1Role,
+                initials: "МП",
+                quote: t.landing.testimonials.teacher1Quote,
                 color: "purple",
                 delay: 200,
               },
               {
-                name: "Dr. Robert Chen",
-                role: "Philosophy Professor",
-                initials: "DR",
-                quote: "Finally, a way to make philosophy accessible to teenagers. The Socrates story was brilliant!",
+                name: t.landing.testimonials.teacher2Name,
+                role: t.landing.testimonials.teacher2Role,
+                initials: "ДС",
+                quote: t.landing.testimonials.teacher2Quote,
                 color: "sky",
                 delay: 400,
               },
               {
-                name: "Lisa Martinez",
-                role: "Parent of 7th Grader",
-                initials: "LM",
-                quote: "My daughter went from hating geography to asking for more stories about different countries!",
+                name: t.landing.testimonials.parent1Name,
+                role: t.landing.testimonials.parent1Role,
+                initials: "АИ",
+                quote: t.landing.testimonials.parent1Quote,
                 color: "teal",
                 delay: 600,
               },
@@ -547,14 +598,14 @@ export default function LandingPage() {
               <div className="bg-gradient-to-r from-purple-600 via-sky-600 to-teal-600 rounded-3xl p-12 text-white relative overflow-hidden hover:scale-105 transition-all duration-700 hover:shadow-2xl">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="relative z-10">
-                  <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Learning?</h2>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.landing.cta.title}</h2>
                   <p className="text-xl mb-8 opacity-90">
-                    Join thousands of educators and students who are making learning magical with WiseTale
+                    {t.landing.cta.subtitle}
                   </p>
 
                   <div className="max-w-md mx-auto">
                     <WaitlistForm />
-                    <p className="text-sm mt-4 opacity-80">Get early access and exclusive updates. No spam, ever.</p>
+                    <p className="text-sm mt-4 opacity-80">{t.landing.cta.privacyNote}</p>
                   </div>
                 </div>
 

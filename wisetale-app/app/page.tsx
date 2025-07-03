@@ -5,15 +5,22 @@ import { ScrollReveal } from "@/components/scroll-reveal"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { WiseTaleLogo } from "@/components/wisetale-logo"
 import { EnhancedVideoPlayer } from "@/components/enhanced-video-player"
+import AuthModal from "@/components/auth-modal"
+import LanguageSelector from "@/components/language-selector"
+import { useLanguage } from "@/hooks/use-language"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { BookOpen, Sparkles, Play, Globe, Brain, Clock, Download, Share2, Volume2 } from "lucide-react"
+import { BookOpen, Sparkles, Play, Globe, Brain, Clock, Download, Share2, Volume2, User, LogOut } from "lucide-react"
 
 export default function WiseTaleApp() {
+  const { t } = useLanguage()
+  const { user, logout } = useAuth()
+  const [authOpen, setAuthOpen] = useState(false)
   const [subject, setSubject] = useState("")
   const [topic, setTopic] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -140,7 +147,7 @@ export default function WiseTaleApp() {
                 href="#"
                 className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
               >
-                Home
+                {t.home}
               </a>
               <a
                 href="http://localhost:3000"
@@ -148,19 +155,68 @@ export default function WiseTaleApp() {
                 rel="noopener noreferrer"
                 className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
               >
-                About
+                {t.about}
               </a>
               <a
                 href="#"
                 className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
               >
-                Contact
+                {t.contact}
               </a>
+              
+              {/* Language Selector */}
+              <LanguageSelector />
+              
+              {/* Auth Section */}
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {t.welcome}, {user.email}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={logout}
+                    className="border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950"
+                  >
+                    <LogOut className="h-4 w-4 mr-1" />
+                    {t.logout}
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => setAuthOpen(true)}
+                  className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  {t.signIn}
+                </Button>
+              )}
+              
               <ThemeToggle />
             </div>
 
-            {/* Mobile Navigation */}
+                          {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-2">
+              <LanguageSelector />
+              {user ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={logout}
+                  className="border-purple-200 dark:border-purple-700"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button 
+                  size="sm"
+                  onClick={() => setAuthOpen(true)}
+                  className="bg-gradient-to-r from-purple-600 to-teal-600"
+                >
+                  <User className="h-4 w-4" />
+                </Button>
+              )}
               <ThemeToggle />
             </div>
           </nav>
@@ -174,11 +230,11 @@ export default function WiseTaleApp() {
             <div className="text-center mb-12">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-purple-600 via-sky-600 to-teal-600 bg-clip-text text-transparent">
-                  Create Your Magical Story
+                  {t.title}
                 </span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
-                Transform any humanities topic into an engaging AI-powered video story
+                {t.subtitle}
               </p>
             </div>
           </ScrollReveal>
@@ -190,18 +246,18 @@ export default function WiseTaleApp() {
                 <CardHeader className="pb-6">
                   <CardTitle className="flex items-center gap-2 text-2xl text-gray-800 dark:text-gray-100">
                     <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    Story Generator
+                    {t.storyGenerator}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Subject Dropdown */}
                   <div className="space-y-3">
                     <Label htmlFor="subject" className="text-base font-semibold text-gray-800 dark:text-gray-200">
-                      Subject
+                      {t.subject}
                     </Label>
                     <Select value={subject} onValueChange={setSubject}>
                       <SelectTrigger className="h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 focus:ring-purple-200 dark:focus:ring-purple-900/50 text-base bg-white dark:bg-gray-800/60 text-gray-900 dark:text-gray-100">
-                        <SelectValue placeholder="Choose your subject..." />
+                        <SelectValue placeholder={t.chooseSubject} />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                         <SelectItem
@@ -210,7 +266,7 @@ export default function WiseTaleApp() {
                         >
                           <div className="flex items-center gap-3">
                             <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                            History
+                            {t.history}
                           </div>
                         </SelectItem>
                         <SelectItem
@@ -219,7 +275,7 @@ export default function WiseTaleApp() {
                         >
                           <div className="flex items-center gap-3">
                             <Globe className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                            Geography
+                            {t.geography}
                           </div>
                         </SelectItem>
                         <SelectItem
@@ -228,7 +284,7 @@ export default function WiseTaleApp() {
                         >
                           <div className="flex items-center gap-3">
                             <Brain className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                            Philosophy
+                            {t.philosophy}
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -237,12 +293,12 @@ export default function WiseTaleApp() {
 
                   {/* Topic Input */}
                   <div className="space-y-3">
-                    <Label htmlFor="topic" className="text-base font-semibold text-gray-800 dark:text-gray-200">
-                      Topic
-                    </Label>
+                                  <Label htmlFor="topic" className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                {t.topic}
+              </Label>
                     <Input
                       id="topic"
-                      placeholder="e.g., French Revolution, Ancient Egypt, Socratic Method..."
+                      placeholder={t.topicPlaceholder}
                       value={topic}
                       onChange={(e) => setTopic(e.target.value)}
                       className="h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 focus:ring-purple-200 dark:focus:ring-purple-900/50 text-base px-4 bg-white dark:bg-gray-800/60 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
@@ -258,12 +314,12 @@ export default function WiseTaleApp() {
                     {isGenerating ? (
                       <div className="flex items-center gap-3">
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Generating Your Story...
+                        {t.generatingStory}
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
                         <Sparkles className="w-5 h-5" />
-                        Generate Video
+                        {t.generateVideo}
                         <Sparkles className="w-5 h-5" />
                       </div>
                     )}
@@ -278,7 +334,7 @@ export default function WiseTaleApp() {
                 <CardHeader className="pb-6">
                   <CardTitle className="flex items-center gap-2 text-2xl text-gray-800 dark:text-gray-100">
                     <Play className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    Your Story Video
+                    {t.yourStoryVideo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -313,10 +369,10 @@ export default function WiseTaleApp() {
                             <Play className="w-10 h-10 text-gray-500 dark:text-gray-400" />
                           </div>
                           <p className="text-gray-500 dark:text-gray-400 font-medium">
-                            Your fairy tale video will appear here
+                            {t.videoPlaceholder}
                           </p>
                           <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                            Choose a subject and topic to create your story
+                            {t.videoSubtitle}
                           </p>
                         </div>
                       </div>
@@ -331,7 +387,7 @@ export default function WiseTaleApp() {
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-lg flex items-center gap-2">
                             <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            Story Transcript
+                            {t.storyTranscript}
                           </h3>
                           <Button
                             variant="ghost"
@@ -339,7 +395,7 @@ export default function WiseTaleApp() {
                             onClick={() => setShowTranscript(!showTranscript)}
                             className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg"
                           >
-                            {showTranscript ? "Hide" : "Show"}
+                            {showTranscript ? t.hide : t.show}
                           </Button>
                         </div>
                         {showTranscript && (
@@ -372,7 +428,7 @@ export default function WiseTaleApp() {
                     WiseTale
                   </span>
                 </div>
-                <span className="text-gray-500 dark:text-gray-400 text-sm">© 2025 WiseTale. All rights reserved.</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm">{t.allRightsReserved}</span>
               </div>
 
               {/* Footer Links */}
@@ -381,25 +437,28 @@ export default function WiseTaleApp() {
                   href="#"
                   className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                 >
-                  Privacy Policy
+                  {t.privacyPolicy}
                 </a>
                 <a
                   href="#"
                   className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                 >
-                  Terms of Service
+                  {t.termsOfService}
                 </a>
                 <a
                   href="#"
                   className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                 >
-                  Support
+                  {t.support}
                 </a>
               </div>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   )
 }
