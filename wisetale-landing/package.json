@@ -57,7 +57,8 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.1",
     "lucide-react": "^0.522.0",
-    "next-themes": "^0.4.6"
+    "next-themes": "^0.4.6",
+    "typescript": "^5"
   },
   "devDependencies": {
     "@types/next": "^9.0.0",
@@ -65,7 +66,6 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19",
     "postcss": "^8.5",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "tailwindcss": "^3.4.17"
   }
 }
