@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.production
+.env*
 
 # Python cache
 __pycache__/
@@ -16,6 +17,7 @@ env/
 .next/
 out/
 dist/
+/build
 
 # Generated content (audio/video files)
 wisetale-api/generated_audio/
@@ -25,6 +27,10 @@ wisetale-api/cache/
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # OS generated files
 .DS_Store
@@ -43,7 +49,15 @@ Thumbs.db
 
 # Node modules
 node_modules/
+/node_modules
 
 # Docker volumes
 postgres_data/
-redis_data/ 
+redis_data/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
