@@ -1,3 +1,5 @@
+import path from 'path'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -16,6 +18,14 @@ const nextConfig = {
   // Optional: enable experimental features for better performance
   experimental: {
     optimizePackageImports: ['@radix-ui/react-icons'],
+  },
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Add path alias configuration
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve('.'),
+    }
+    return config
   },
 }
 
