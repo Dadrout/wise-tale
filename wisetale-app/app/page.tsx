@@ -60,8 +60,8 @@ export default function WiseTaleApp() {
         }
       }, 200) // Обновляем каждые 200ms для плавности
 
-      // Use environment-aware API URL
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      // Use Vercel proxy to avoid Mixed Content issues
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy'
       const response = await fetch(`${API_URL}/api/v1/generate/`, {
         method: 'POST',
         headers: {

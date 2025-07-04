@@ -1,5 +1,10 @@
 // API service for WiseTale backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Use Vercel proxy to avoid Mixed Content issues with HTTPS
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (
+  typeof window !== 'undefined' 
+    ? '/api/proxy' // Use proxy in browser
+    : 'http://138.197.191.222:8000' // Direct connection during SSR
+);
 
 export interface GenerateRequest {
   subject: string;
