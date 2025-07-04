@@ -7,11 +7,12 @@ import os
 
 # Import all routers
 from app.api.v1.generate import router as generate_router
-from app.api.v1.users import router as users_router
-from app.api.v1.stories import router as stories_router
-from app.api.v1.videos import router as videos_router
-from app.api.v1.audio import router as audio_router
-from app.api.v1.waitlist import router as waitlist_router
+# Temporarily disabled Supabase-dependent routers:
+# from app.api.v1.users import router as users_router
+# from app.api.v1.stories import router as stories_router
+# from app.api.v1.videos import router as videos_router
+# from app.api.v1.audio import router as audio_router
+# from app.api.v1.waitlist import router as waitlist_router
 
 app = FastAPI(
     title="WiseTale API",
@@ -22,12 +23,14 @@ app = FastAPI(
 # CORS settings - secure for production
 environment = os.getenv("ENVIRONMENT", "development")
 if environment == "production":
-    # Production - specific origins only
-    origins = [
-        "https://yourdomain.com",  # Replace with your actual domain
-        "https://www.yourdomain.com",  # Replace with your actual domain
-        "https://app.yourdomain.com",  # Replace with your actual domain
-    ]
+    # Production - allow all origins temporarily for testing
+    origins = ["*"]  # FIXME: Replace with specific domains after Vercel deployment
+    # origins = [
+    #     "https://yourdomain.com",  # Replace with your actual domain
+    #     "https://www.yourdomain.com",  # Replace with your actual domain
+    #     "https://app.yourdomain.com",  # Replace with your actual domain
+    #     "https://your-app-name.vercel.app",  # Update with your actual Vercel domain
+    # ]
 else:
     # Development - allow local origins
     origins = [
@@ -57,11 +60,12 @@ app.mount("/audio", StaticFiles(directory=str(audio_dir)), name="audio")
 
 # Include all routers
 app.include_router(generate_router, prefix="/api/v1")
-app.include_router(users_router, prefix="/api/v1")
-app.include_router(stories_router, prefix="/api/v1")
-app.include_router(videos_router, prefix="/api/v1")
-app.include_router(audio_router, prefix="/api/v1")
-app.include_router(waitlist_router, prefix="/api/v1")
+# Temporarily disabled Supabase-dependent routers:
+# app.include_router(users_router, prefix="/api/v1")
+# app.include_router(stories_router, prefix="/api/v1")
+# app.include_router(videos_router, prefix="/api/v1")
+# app.include_router(audio_router, prefix="/api/v1")
+# app.include_router(waitlist_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
