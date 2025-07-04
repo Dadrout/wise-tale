@@ -50,22 +50,39 @@ export async function GET(
   try {
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     })
 
-    const data = await response.text()
-
-    return new NextResponse(data, {
-      status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    })
+    // Handle different content types
+    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    
+    // For binary files (videos, audio, images), stream the response
+    if (contentType.startsWith('video/') || contentType.startsWith('audio/') || contentType.startsWith('image/')) {
+      const buffer = await response.arrayBuffer()
+      
+      return new NextResponse(buffer, {
+        status: response.status,
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': response.headers.get('content-length') || '',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      })
+    } else {
+      // For text/JSON responses
+      const data = await response.text()
+      
+      return new NextResponse(data, {
+        status: response.status,
+        headers: {
+          'Content-Type': contentType,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      })
+    }
   } catch (error) {
     return NextResponse.json(
       { error: 'Connection failed' },

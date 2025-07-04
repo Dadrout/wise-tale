@@ -84,23 +84,41 @@ export default function WiseTaleApp() {
           setGenerationStatus(statusData.message || "⏳ Processing...")
 
           if (statusData.status === 'completed') {
+            // Always reset generating state when task is completed
+            setIsGenerating(false)
+            setGenerationProgress(100)
+            setGenerationStatus("🎉 Your magical story is ready!")
+            
             // Get final result
-            const resultResponse = await fetch(`${API_URL}/api/v1/tasks/${taskId}/result`)
-            if (resultResponse.ok) {
-              const resultData = await resultResponse.json()
-              setGenerationProgress(100)
-              setGenerationStatus("🎉 Your magical story is ready!")
-              setGeneratedVideo({
-                id: taskId,
-                video_url: resultData.video_url?.replace('http://localhost:8000', 'http://138.197.191.222:80'),
-                audio_url: resultData.audio_url?.replace('http://localhost:8000', 'http://138.197.191.222:80'),
-                transcript: resultData.script,
-                images_used: resultData.images_used || [],
-                created_at: new Date().toISOString(),
-                status: 'completed'
-              })
-              setHasGenerated(true)
-              setIsGenerating(false) // Reset generating state
+            try {
+              const resultResponse = await fetch(`${API_URL}/api/v1/tasks/${taskId}/result`)
+              if (resultResponse.ok) {
+                const resultData = await resultResponse.json()
+                
+                // Construct URLs manually to guarantee they are served over HTTPS via the proxy
+                const videoId = resultData.video_url?.split('/').pop()
+                const audioId = resultData.audio_url?.split('/').pop()
+
+                const videoUrl = videoId ? `/api/simple-proxy/videos/${videoId}` : undefined
+                const audioUrl = audioId ? `/api/simple-proxy/audio/${audioId}` : undefined
+
+                setGeneratedVideo({
+                  id: taskId,
+                  video_url: videoUrl,
+                  audio_url: audioUrl,
+                  transcript: resultData.script,
+                  images_used: resultData.images_used || [],
+                  created_at: new Date().toISOString(),
+                  status: 'completed'
+                })
+                setHasGenerated(true)
+              } else {
+                console.error('Failed to fetch result:', resultResponse.status)
+                setGenerationStatus("⚠️ Video completed but failed to load details")
+              }
+            } catch (error) {
+              console.error('Error fetching result:', error)
+              setGenerationStatus("⚠️ Video completed but failed to load details")
             }
             return // Stop polling
           } else if (statusData.status === 'failed') {
@@ -118,6 +136,7 @@ export default function WiseTaleApp() {
           console.error('Error polling task status:', error)
           setGenerationStatus("❌ " + (error instanceof Error ? error.message : 'Task failed'))
           setGenerationProgress(0)
+          setIsGenerating(false) // Reset generating state on error
         }
       }
 
