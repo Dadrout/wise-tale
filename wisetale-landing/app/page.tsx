@@ -199,7 +199,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white px-8 py-3 rounded-full text-lg font-semibold shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-110 hover:-translate-y-2 group"
-                onClick={() => window.location.href = 'https://wise-tale.vercel.app/app'}
+                onClick={() => window.location.href = 'https://wise-tale.vercel.app'}
               >
                 <Sparkles className="w-5 h-5 mr-3 transition-transform duration-500 group-hover:rotate-180" />
                 {t.landing.hero.startLearning}

@@ -9,6 +9,7 @@ export interface Translations {
   home: string;
   about: string;
   contact: string;
+  faq: string;
   profile: string;
   logout: string;
   login: string;
@@ -77,6 +78,7 @@ export const translations: Record<Language, Translations> = {
     home: "Home",
     about: "About",
     contact: "Contact",
+    faq: "FAQ",
     profile: "Profile", 
     logout: "Logout",
     login: "Login",
@@ -144,6 +146,7 @@ export const translations: Record<Language, Translations> = {
     home: "Главная",
     about: "О нас",
     contact: "Контакты",
+    faq: "ЧАВО",
     profile: "Профиль",
     logout: "Выйти", 
     login: "Войти",

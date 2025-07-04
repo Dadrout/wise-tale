@@ -201,18 +201,24 @@ export default function WiseTaleApp() {
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-8">
               <a
-                href="#"
+                href="https://wise-tale-landing.vercel.app"
                 className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
               >
                 {t.home}
               </a>
               <a
-                href={process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:3000'}
+                href="https://wise-tale-landing.vercel.app/#about"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
               >
                 {t.about}
+              </a>
+              <a
+                href="https://wise-tale-landing.vercel.app/#faq"
+                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
+              >
+                {t.faq}
               </a>
               <a
                 href="#"
