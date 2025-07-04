@@ -131,17 +131,21 @@ export default function LandingPage() {
                 <ThemeToggle />
                 {user ? (
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
-                      {user.email}
-                    </span>
+                    <Button
+                      onClick={() => window.location.href = 'https://wise-tale.vercel.app/app'}
+                      size="sm"
+                      className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
+                    >
+                      {t.generateVideo}
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
                     <Button
                       onClick={logout}
                       variant="outline"
                       size="sm"
                       className="border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950 transition-all duration-300 hover:scale-110"
                     >
-                      <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">{t.signOut}</span>
+                      <LogOut className="h-4 w-4" />
                     </Button>
                   </div>
                 ) : (
@@ -195,27 +199,11 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white px-8 py-3 rounded-full text-lg font-semibold shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-110 hover:-translate-y-2 group"
-                onClick={() => {
-                  // In production, use relative URL that nginx will proxy
-                  // In development, use direct localhost URL
-                  const appUrl = process.env.NODE_ENV === 'production' ? '/app' : 'http://localhost:3001'
-                  window.location.href = appUrl
-                }}
+                onClick={() => window.location.href = 'https://wise-tale.vercel.app/app'}
               >
-                <Play className="w-5 h-5 mr-2 transition-transform group-hover:scale-125" />
+                <Sparkles className="w-5 h-5 mr-3 transition-transform duration-500 group-hover:rotate-180" />
                 {t.landing.hero.startLearning}
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-2 border-purple-200 text-purple-600 hover:bg-purple-50 px-8 py-3 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-110 hover:shadow-lg hover:-translate-y-1 group"
-                onClick={() => {
-                  const videoElement = document.querySelector(".aspect-video")
-                  videoElement?.scrollIntoView({ behavior: "smooth", block: "center" })
-                }}
-              >
-                <Volume2 className="w-5 h-5 mr-2 transition-transform group-hover:scale-125" />
-                {t.landing.hero.watchDemo}
+                <ArrowRight className="w-5 h-5 ml-3 transition-transform duration-500 group-hover:translate-x-1" />
               </Button>
             </div>
           </ScrollReveal>

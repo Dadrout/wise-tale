@@ -198,13 +198,11 @@ export function EnhancedVideoPlayer({
   const handleSeek = (value: number[]) => {
     const video = videoRef.current
     if (!video || !duration) return
-
-    const newTime = (value[0] / 100) * duration
-    video.currentTime = newTime
-    setCurrentTime(newTime)
     
-    if (newTime < duration - 0.1) {
-      setIsEnded(false)
+    const newTime = (value[0] / 100) * duration
+    if (isFinite(newTime)) {
+      video.currentTime = newTime
+      setCurrentTime(newTime)
     }
   }
 
@@ -318,6 +316,7 @@ export function EnhancedVideoPlayer({
         preload="metadata"
         playsInline
         onClick={togglePlay}
+        onDoubleClick={toggleFullscreen}
       >
         <source src={videoUrl} type="video/mp4" />
         <p className="text-white p-4">Your browser does not support video playback.</p>
@@ -356,9 +355,17 @@ export function EnhancedVideoPlayer({
         </div>
       )}
 
+      {/* Clickable overlay for fullscreen play/pause */}
+      {isFullscreen && isPlaying && (
+        <div 
+          className="absolute inset-0 w-full h-full z-10"
+          onClick={togglePlay}
+        />
+      )}
+
       {/* Play Button Overlay */}
       {!isPlaying && !isLoading && !error && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="text-center">
             <Button
               onClick={togglePlay}
