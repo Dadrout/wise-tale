@@ -92,14 +92,15 @@ export default function WiseTaleApp() {
               setGenerationStatus("🎉 Your magical story is ready!")
               setGeneratedVideo({
                 id: taskId,
-                video_url: resultData.video_url,
-                audio_url: resultData.audio_url,
+                video_url: resultData.video_url?.replace('http://localhost:8000', 'http://138.197.191.222:80'),
+                audio_url: resultData.audio_url?.replace('http://localhost:8000', 'http://138.197.191.222:80'),
                 transcript: resultData.script,
                 images_used: resultData.images_used || [],
                 created_at: new Date().toISOString(),
                 status: 'completed'
               })
               setHasGenerated(true)
+              setIsGenerating(false) // Reset generating state
             }
             return // Stop polling
           } else if (statusData.status === 'failed') {
