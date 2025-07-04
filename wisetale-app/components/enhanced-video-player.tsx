@@ -30,179 +30,111 @@ export function EnhancedVideoPlayer({
   const [error, setError] = useState<string | null>(null)
   const [isEnded, setIsEnded] = useState(false)
   const [isBuffering, setIsBuffering] = useState(false)
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Combined effect for video events
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    // Обработчик клавиатуры для полноэкранного режима
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const setVideoState = () => {
       if (!video) return
-      
-      // Пауза/воспроизведение по пробелу
+      setIsPlaying(!video.paused)
+      setDuration(video.duration)
+      setCurrentTime(video.currentTime)
+      setVolume(video.volume)
+      setIsMuted(video.muted)
+      setIsLoading(false)
+      setError(null)
+    }
+
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    const onTimeUpdate = () => setCurrentTime(video.currentTime)
+    const onDurationChange = () => setDuration(video.duration)
+    const onLoadedData = () => {
+      setDuration(video.duration)
+      setIsLoading(false)
+    }
+    const onWaiting = () => setIsBuffering(true)
+    const onCanPlay = () => setIsBuffering(false)
+    const onError = () => {
+      setError('Failed to load video.')
+      setIsLoading(false)
+    }
+
+    setVideoState()
+
+    video.addEventListener('play', onPlay)
+    video.addEventListener('pause', onPause)
+    video.addEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('durationchange', onDurationChange)
+    video.addEventListener('loadeddata', onLoadedData)
+    video.addEventListener('waiting', onWaiting)
+    video.addEventListener('canplay', onCanPlay)
+    video.addEventListener('error', onError)
+
+    return () => {
+      video.removeEventListener('play', onPlay)
+      video.removeEventListener('pause', onPause)
+      video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('durationchange', onDurationChange)
+      video.removeEventListener('loadeddata', onLoadedData)
+      video.removeEventListener('waiting', onWaiting)
+      video.removeEventListener('canplay', onCanPlay)
+      video.removeEventListener('error', onError)
+    }
+  }, [videoUrl])
+
+  // Fullscreen and keyboard handlers
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!document.fullscreenElement
+      setIsFullscreen(isCurrentlyFullscreen)
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault()
         togglePlay()
       }
-      
-      // Выход из полноэкранного режима по Escape
+      if (e.code === 'f') {
+        e.preventDefault()
+        toggleFullscreen()
+      }
       if (e.code === 'Escape' && isFullscreen) {
         e.preventDefault()
         toggleFullscreen()
       }
     }
 
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration)
-      setIsLoading(false)
-      setError(null)
-      setIsEnded(false)
-    }
-
-    const handleTimeUpdate = () => {
-      const video = videoRef.current
-      if (!video || !video.duration) return
-      
-      setCurrentTime(video.currentTime)
-      
-      // Проверяем достижение конца
-      const isNearEnd = video.currentTime >= video.duration - 0.05
-      if (isNearEnd && !isEnded) {
-        setIsEnded(true)
-      } else if (!isNearEnd && isEnded) {
-        setIsEnded(false)
-      }
-    }
-
-    const handlePlay = () => {
-      setIsPlaying(true)
-      setIsEnded(false)
-      setIsBuffering(false)
-    }
-    
-    const handlePause = () => setIsPlaying(false)
-    
-    const handleEnded = () => {
-      setIsPlaying(false)
-      setIsEnded(true)
-    }
-
-    const handleSeeking = () => {
-      setIsBuffering(true)
-      if (isEnded) {
-        setIsEnded(false)
-      }
-    }
-
-    const handleSeeked = () => {
-      const video = videoRef.current
-      if (!video) return
-      
-      setCurrentTime(video.currentTime)
-      setIsBuffering(false)
-    }
-
-    const handleWaiting = () => {
-      setIsBuffering(true)
-    }
-
-    const handleCanPlay = () => {
-      setIsBuffering(false)
-    }
-
-    const handleError = () => {
-      setError("Failed to load video")
-      setIsLoading(false)
-      setIsBuffering(false)
-    }
-
-    const handleLoadStart = () => {
-      setIsLoading(true)
-      setError(null)
-      setIsEnded(false)
-      setIsBuffering(false)
-    }
-
-    // Обработка изменения состояния fullscreen
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement
-      )
-      setIsFullscreen(isCurrentlyFullscreen)
-    }
-
-    // Add event listeners
-    video.addEventListener('loadedmetadata', handleLoadedMetadata)
-    video.addEventListener('timeupdate', handleTimeUpdate)
-    video.addEventListener('play', handlePlay)
-    video.addEventListener('pause', handlePause)
-    video.addEventListener('ended', handleEnded)
-    video.addEventListener('seeking', handleSeeking)
-    video.addEventListener('seeked', handleSeeked)
-    video.addEventListener('waiting', handleWaiting)
-    video.addEventListener('canplay', handleCanPlay)
-    video.addEventListener('error', handleError)
-    video.addEventListener('loadstart', handleLoadStart)
-
-    // Keyboard event listeners for fullscreen mode
-    document.addEventListener('keydown', handleKeyPress)
-
-    // Fullscreen event listeners
     document.addEventListener('fullscreenchange', handleFullscreenChange)
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange)
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange)
+    document.addEventListener('keydown', handleKeyDown)
 
     return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      video.removeEventListener('timeupdate', handleTimeUpdate)
-      video.removeEventListener('play', handlePlay)
-      video.removeEventListener('pause', handlePause)
-      video.removeEventListener('ended', handleEnded)
-      video.removeEventListener('seeking', handleSeeking)
-      video.removeEventListener('seeked', handleSeeked)
-      video.removeEventListener('waiting', handleWaiting)
-      video.removeEventListener('canplay', handleCanPlay)
-      video.removeEventListener('error', handleError)
-      video.removeEventListener('loadstart', handleLoadStart)
-
-      // Remove keyboard event listeners
-      document.removeEventListener('keydown', handleKeyPress)
-
-      // Remove fullscreen event listeners
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [videoUrl, isEnded, isFullscreen])
+  }, [isFullscreen])
 
   const togglePlay = () => {
     const video = videoRef.current
     if (!video) return
-
-    if (isPlaying) {
-      video.pause()
-    } else {
-      if (isEnded) {
-        video.currentTime = 0
-        setIsEnded(false)
-      }
+    if (video.paused) {
       video.play()
+    } else {
+      video.pause()
     }
   }
 
   const handleSeek = (value: number[]) => {
     const video = videoRef.current
     if (!video || !duration) return
-    
+
     const newTime = (value[0] / 100) * duration
     if (isFinite(newTime)) {
       video.currentTime = newTime
-      setCurrentTime(newTime)
+      setCurrentTime(newTime) // Immediately update state for better responsiveness
     }
   }
 
@@ -311,6 +243,7 @@ export function EnhancedVideoPlayer({
       {/* Video Element */}
       <video
         ref={videoRef}
+        src={videoUrl}
         className="w-full h-full object-cover"
         poster={posterUrl}
         preload="metadata"
@@ -318,8 +251,7 @@ export function EnhancedVideoPlayer({
         onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
       >
-        <source src={videoUrl} type="video/mp4" />
-        <p className="text-white p-4">Your browser does not support video playback.</p>
+        Your browser does not support the video tag.
       </video>
 
       {/* Loading Overlay */}
@@ -355,21 +287,20 @@ export function EnhancedVideoPlayer({
         </div>
       )}
 
-      {/* Clickable overlay for fullscreen play/pause */}
-      {isFullscreen && isPlaying && (
-        <div 
-          className="absolute inset-0 w-full h-full z-10"
-          onClick={togglePlay}
-        />
-      )}
+      {/* Clickable overlay for play/pause */}
+      <div
+        className="absolute inset-0 w-full h-full z-10"
+        onClick={togglePlay}
+        onDoubleClick={toggleFullscreen}
+      />
 
       {/* Play Button Overlay */}
       {!isPlaying && !isLoading && !error && (
-        <div className="absolute inset-0 flex items-center justify-center z-20">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="text-center">
             <Button
               onClick={togglePlay}
-              className={`rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white/20 ${
+              className={`rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white/20 pointer-events-auto ${
                 isFullscreen ? 'w-20 h-20' : 'w-16 h-16'
               }`}
               size="lg"
@@ -389,14 +320,12 @@ export function EnhancedVideoPlayer({
 
       {/* Enhanced Controls for Fullscreen */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent transition-opacity duration-300 ${
-          isFullscreen ? 'p-6' : 'p-4'
-        } ${
-          showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 z-30 ${
+          showControls && !isEnded ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* Simple Progress Bar */}
-        <div className="mb-4">
+        {/* Progress Bar */}
+        <div className="mx-4 mb-2 pt-2">
           <Slider
             value={[progressPercentage]}
             onValueChange={handleSeek}
