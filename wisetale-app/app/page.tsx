@@ -38,33 +38,13 @@ export default function WiseTaleApp() {
     setGenerationStatus("🎭 Creating educational story...")
     
     try {
-      // Запускаем реальный таймер прогресса
-      let currentProgress = 0
-      const progressTimer = setInterval(() => {
-        currentProgress += 2
-        if (currentProgress <= 15) {
-          setGenerationProgress(currentProgress)
-          setGenerationStatus("📚 Generating historical content...")
-        } else if (currentProgress <= 35) {
-          setGenerationProgress(currentProgress)
-          setGenerationStatus("🎵 Creating audio narration...")
-        } else if (currentProgress <= 60) {
-          setGenerationProgress(currentProgress)
-          setGenerationStatus("📷 Finding educational images...")
-        } else if (currentProgress <= 85) {
-          setGenerationProgress(currentProgress)
-          setGenerationStatus("🎬 Building video with transitions...")
-        } else if (currentProgress <= 95) {
-          setGenerationProgress(currentProgress)
-          setGenerationStatus("✨ Finalizing your story...")
-        }
-      }, 200) // Обновляем каждые 200ms для плавности
-
       // Use Vercel proxy to avoid Mixed Content issues on HTTPS
       const API_URL = window.location.protocol === 'https:' 
         ? '/api/proxy' 
         : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
-      const response = await fetch(`${API_URL}/api/v1/generate/`, {
+
+      // Step 1: Create async task
+      const taskResponse = await fetch(`${API_URL}/api/v1/tasks/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,33 +52,86 @@ export default function WiseTaleApp() {
         body: JSON.stringify({
           subject,
           topic,
-          user_id: 123, // temporary user ID
+          level: 'beginner',
+          user_id: 123,
         }),
       })
-      
-      clearInterval(progressTimer)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setGenerationProgress(100)
-        setGenerationStatus("🎉 Your magical story is ready!")
-        setGeneratedVideo(data)
-        setHasGenerated(true)
-      } else {
-        console.error('Generation failed:', await response.text())
-        setGenerationStatus("❌ Generation failed")
-        setGenerationProgress(0)
+
+      if (!taskResponse.ok) {
+        const errorData = await taskResponse.json()
+        throw new Error(errorData.detail || 'Failed to create task')
       }
+
+      const taskData = await taskResponse.json()
+      const taskId = taskData.task_id
+
+      // Step 2: Poll for progress
+      let pollCount = 0
+      const maxPolls = 300 // 10 minutes max (300 * 2 seconds)
+      
+      const poll = async () => {
+        try {
+          const statusResponse = await fetch(`${API_URL}/api/v1/tasks/${taskId}/status`)
+          
+          if (!statusResponse.ok) {
+            throw new Error('Failed to get task status')
+          }
+
+          const statusData = await statusResponse.json()
+          
+          // Update progress and status
+          setGenerationProgress(statusData.progress || 0)
+          setGenerationStatus(statusData.message || "⏳ Processing...")
+
+          if (statusData.status === 'completed') {
+            // Get final result
+            const resultResponse = await fetch(`${API_URL}/api/v1/tasks/${taskId}/result`)
+            if (resultResponse.ok) {
+              const resultData = await resultResponse.json()
+              setGenerationProgress(100)
+              setGenerationStatus("🎉 Your magical story is ready!")
+              setGeneratedVideo({
+                id: taskId,
+                video_url: resultData.video_url,
+                audio_url: resultData.audio_url,
+                transcript: resultData.script,
+                images_used: resultData.images_used || [],
+                created_at: new Date().toISOString(),
+                status: 'completed'
+              })
+              setHasGenerated(true)
+            }
+            return // Stop polling
+          } else if (statusData.status === 'failed') {
+            throw new Error(statusData.error || 'Video generation failed')
+          }
+
+          // Continue polling if not completed
+          pollCount++
+          if (pollCount < maxPolls) {
+            setTimeout(poll, 2000) // Poll every 2 seconds
+          } else {
+            throw new Error('Generation timed out after 10 minutes')
+          }
+        } catch (error) {
+          console.error('Error polling task status:', error)
+          setGenerationStatus("❌ " + (error instanceof Error ? error.message : 'Task failed'))
+          setGenerationProgress(0)
+        }
+      }
+
+      // Start polling
+      poll()
+
     } catch (error) {
       console.error('Error generating video:', error)
-      setGenerationStatus("❌ Network error")
+      setGenerationStatus("❌ " + (error instanceof Error ? error.message : 'Network error'))
       setGenerationProgress(0)
-    } finally {
       setTimeout(() => {
         setIsGenerating(false)
         setGenerationProgress(0)
         setGenerationStatus("")
-      }, 2000)
+      }, 3000)
     }
   }
 

@@ -649,7 +649,7 @@ pipeline = VideoGenerationPipeline()
 
 @router.post("/", response_model=GenerateResponse)
 async def generate_video(req: GenerateRequest):
-    """Generate educational video and save to Firebase"""
+    """Generate educational video (Legacy - Use /api/v1/tasks/generate for async processing)"""
     
     try:
         # Step 1: Generate story text from topic

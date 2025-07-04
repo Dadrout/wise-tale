@@ -7,6 +7,7 @@ import os
 
 # Import all routers
 from app.api.v1.generate import router as generate_router
+from app.api.v1.tasks import router as tasks_router
 # Temporarily disabled Supabase-dependent routers:
 # from app.api.v1.users import router as users_router
 # from app.api.v1.stories import router as stories_router
@@ -60,6 +61,7 @@ app.mount("/audio", StaticFiles(directory=str(audio_dir)), name="audio")
 
 # Include all routers
 app.include_router(generate_router, prefix="/api/v1")
+app.include_router(tasks_router, prefix="/api/v1")
 # Temporarily disabled Supabase-dependent routers:
 # app.include_router(users_router, prefix="/api/v1")
 # app.include_router(stories_router, prefix="/api/v1")
