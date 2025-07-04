@@ -10,19 +10,22 @@ export async function GET(
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ''}`
 
+  console.log('Proxy GET request to:', url)
+
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'WiseTale-Proxy/1.0',
         // Forward authorization if present
         ...(request.headers.get('authorization') && {
           authorization: request.headers.get('authorization')!,
         }),
       },
-      // Increase timeout for video generation
-      signal: AbortSignal.timeout(300000), // 5 minutes
     })
+
+    console.log('Backend response status:', response.status)
 
     const data = await response.text()
 
@@ -38,7 +41,7 @@ export async function GET(
   } catch (error) {
     console.error('Proxy error:', error)
     return NextResponse.json(
-      { error: 'Backend connection failed' },
+      { error: 'Backend connection failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -51,24 +54,29 @@ export async function POST(
   const path = params.path.join('/')
   const url = `${BACKEND_URL}/${path}`
 
+  console.log('Proxy POST request to:', url)
+
   try {
     const body = await request.text()
+    console.log('Request body:', body)
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'WiseTale-Proxy/1.0',
         // Forward authorization if present
         ...(request.headers.get('authorization') && {
           authorization: request.headers.get('authorization')!,
         }),
       },
       body,
-      // Increase timeout for video generation
-      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
+    console.log('Backend response status:', response.status)
+
     const data = await response.text()
+    console.log('Backend response data:', data)
 
     return new NextResponse(data, {
       status: response.status,
@@ -82,7 +90,7 @@ export async function POST(
   } catch (error) {
     console.error('Proxy error:', error)
     return NextResponse.json(
-      { error: 'Backend connection failed' },
+      { error: 'Backend connection failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -102,13 +110,12 @@ export async function PUT(
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'WiseTale-Proxy/1.0',
         ...(request.headers.get('authorization') && {
           authorization: request.headers.get('authorization')!,
         }),
       },
       body,
-      // Increase timeout for video generation
-      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
     const data = await response.text()
@@ -125,7 +132,7 @@ export async function PUT(
   } catch (error) {
     console.error('Proxy error:', error)
     return NextResponse.json(
-      { error: 'Backend connection failed' },
+      { error: 'Backend connection failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -143,12 +150,11 @@ export async function DELETE(
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'WiseTale-Proxy/1.0',
         ...(request.headers.get('authorization') && {
           authorization: request.headers.get('authorization')!,
         }),
       },
-      // Increase timeout for video generation
-      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
     const data = await response.text()
@@ -165,7 +171,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Proxy error:', error)
     return NextResponse.json(
-      { error: 'Backend connection failed' },
+      { error: 'Backend connection failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
