@@ -40,7 +40,7 @@ export default function WiseTaleApp() {
     try {
       // Use Vercel proxy to avoid Mixed Content issues on HTTPS
       const API_URL = window.location.protocol === 'https:' 
-        ? '/api/proxy' 
+        ? '/api/simple-proxy' 
         : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
 
       // Step 1: Create async task
