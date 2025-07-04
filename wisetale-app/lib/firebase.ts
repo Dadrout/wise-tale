@@ -5,13 +5,13 @@ import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAaYnmkiIR01-kuFYQRR7RGK8HWVs7duLg",
-  authDomain: "time-capsule-d5a66.firebaseapp.com",
-  projectId: "time-capsule-d5a66",
-  storageBucket: "time-capsule-d5a66.firebasestorage.app",
-  messagingSenderId: "218071541143",
-  appId: "1:218071541143:web:c3eadd2c64274082ff50d2",
-  measurementId: "G-YWMXJ6FHD3"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Prevent re-initialization in Next.js hot reload
