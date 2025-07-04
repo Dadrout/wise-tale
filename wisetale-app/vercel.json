@@ -17,6 +17,10 @@
   "functions": {
     "app/api/health/route.ts": {
       "memory": 128
+    },
+    "app/api/proxy/[...path]/route.ts": {
+      "memory": 512,
+      "maxDuration": 300
     }
   },
   "headers": [

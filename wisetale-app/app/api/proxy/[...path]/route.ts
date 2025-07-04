@@ -20,6 +20,8 @@ export async function GET(
           authorization: request.headers.get('authorization')!,
         }),
       },
+      // Increase timeout for video generation
+      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
     const data = await response.text()
@@ -62,6 +64,8 @@ export async function POST(
         }),
       },
       body,
+      // Increase timeout for video generation
+      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
     const data = await response.text()
@@ -103,6 +107,8 @@ export async function PUT(
         }),
       },
       body,
+      // Increase timeout for video generation
+      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
     const data = await response.text()
@@ -141,6 +147,8 @@ export async function DELETE(
           authorization: request.headers.get('authorization')!,
         }),
       },
+      // Increase timeout for video generation
+      signal: AbortSignal.timeout(300000), // 5 minutes
     })
 
     const data = await response.text()
