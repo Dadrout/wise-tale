@@ -1,71 +1,42 @@
-# Multi-stage build for maximum optimization with BuildKit cache mounts
-FROM python:3.11-slim AS base
+# Multi-stage build for maximum optimization
+FROM python:3.11 AS base
 
-# Install system dependencies with cache mount for faster rebuilds
+# Install system dependencies that might be needed by Python packages
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt \
-    apt-get update && apt-get install -y \
+    apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
-# Install uv with cache mount
+# Install uv for faster dependency management
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install uv
 
-# Production dependencies stage
-FROM base AS deps
-WORKDIR /app
-
-# Copy only dependency files first for better caching
-COPY pyproject.toml uv.lock* ./
-
-# Install dependencies with uv and cache mount for maximum speed
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv venv .venv && \
-    . .venv/bin/activate && \
-    uv sync --frozen --no-dev
-
-# Development stage with all dependencies
+# --- Development Stage ---
 FROM base AS dev
 WORKDIR /app
 
 # Copy dependency files
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml ./
+COPY requirements.txt ./
 
-# Install ALL dependencies including dev with cache mount
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv venv .venv && \
+# Install dependencies in a virtual environment
+RUN uv venv .venv && \
     . .venv/bin/activate && \
-    uv sync --frozen
+    uv pip install -r requirements.txt
 
-# Copy application code (this layer changes most often)
+# Copy the rest of the application code
 COPY . .
 
-# Activate virtual environment for runtime
-ENV VIRTUAL_ENV=/app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
+# Activate venv and run the app
+CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-# Production stage (smaller, optimized)
-FROM deps AS prod
+# --- Production Stage ---
+FROM base AS prod
 WORKDIR /app
 
-# Copy only production code
+# Copy only necessary files from dev stage
+COPY --from=dev /app/.venv ./.venv
 COPY . .
 
-# Activate virtual environment
-ENV VIRTUAL_ENV=/app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# No CMD here, will be provided by docker-compose

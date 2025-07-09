@@ -1,62 +1,62 @@
-# Multi-stage build for faster rebuilds and production optimization
-FROM node:20-alpine as base
+# Multi-stage build for maximum optimization
 
-# Install dependencies only when needed
-FROM base as deps
+# --- Base Stage ---
+# Start from a Node.js base image
+FROM node:20-alpine AS base
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+
+# --- Deps Stage ---
+# Install dependencies in a separate stage to leverage Docker's caching.
+FROM base AS deps
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+# Copy dependency definition files
+COPY package.json pnpm-lock.yaml ./
 
-# Development stage
-FROM base as dev
+# Install dependencies
+RUN pnpm install
+
+
+# --- Development Stage ---
+# This is the stage that runs when using docker-compose.dev.yml
+FROM base AS dev
 WORKDIR /app
 
-# Copy package files and install all dependencies  
-COPY package*.json ./
-RUN npm ci --legacy-peer-deps
-
-# Copy source code
+# Copy installed dependencies from the 'deps' stage
+COPY --from=deps /app/node_modules ./node_modules
+# Copy the rest of the app's source code
 COPY . .
 
-CMD ["npm", "run", "dev"]
+# Run the Next.js development server
+CMD ["pnpm", "dev"]
 
-# Build stage
-FROM base as builder
+
+# --- Production Stage ---
+# This stage builds the application for production.
+FROM base AS builder
 WORKDIR /app
 
-# Copy package files and install all dependencies
-COPY package*.json ./
-RUN npm ci --legacy-peer-deps
-
-# Copy source code
+# Copy installed dependencies and source code
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the Next.js application
+RUN pnpm build
 
-# Production stage
-FROM base as production
+
+# --- Final Production Stage ---
+# This is the final, lean image for production.
+FROM base as prod
 WORKDIR /app
 
-# Add non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy built application from builder stage
+# Copy production-necessary files from the builder stage
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-# Switch to non-root user
-USER nextjs
-
-# Expose port
-EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3001/api/health || exit 1
-
-CMD ["node", "server.js"] 
+# Start the Next.js production server
+CMD ["pnpm", "start"] 

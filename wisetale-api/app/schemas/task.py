@@ -15,7 +15,9 @@ class TaskBase(BaseModel):
     subject: str
     topic: str
     level: str = "beginner"
-    user_id: Optional[int] = None
+    language: str = "en-US"
+    voice: str = "female"  # Add voice field with default value
+    user_id: Optional[str] = None  # Changed from int to str for Firebase UID
 
 
 class TaskCreate(TaskBase):

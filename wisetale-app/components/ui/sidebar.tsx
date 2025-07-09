@@ -18,6 +18,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Archive,
+  ArchiveX,
+  File,
+  Inbox,
+  Send,
+  Trash2,
+  Users2,
+  Settings,
+  Plus,
+  History,
+  Home,
+  LogOut,
+  Menu,
+} from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7

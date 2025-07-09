@@ -1,52 +1,48 @@
-from typing import Any, Optional
+import os
+from typing import Optional
 from pydantic_settings import BaseSettings
-from functools import lru_cache
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Settings(BaseSettings):
-    # API Settings
-    API_PORT: int = 8000
-    API_HOST: str = "0.0.0.0"
-    
-    # Redis Settings
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_PASSWORD: Optional[str] = None
-    redis_url: Optional[str] = None
-    
-    # Supabase Settings
-    SUPABASE_URL: str = ""
-    SUPABASE_KEY: str = ""
-    SUPABASE_SERVICE_KEY: str = ""
-    
-    # Security Settings
-    JWT_SECRET: str = "your-secret-key-here"
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
-    # Azure OpenAI Settings
-    azure_openai_api_key: Optional[str] = None
-    azure_openai_endpoint: Optional[str] = None
-    azure_openai_api_version: Optional[str] = None
-    azure_openai_deployment_name: Optional[str] = None
-    
-    # Azure Speech Settings
-    azure_speech_key: Optional[str] = None
-    azure_speech_region: Optional[str] = None
-    
-    # External API Keys
-    pexels_api_key: Optional[str] = None
-    pixabay_api_key: Optional[str] = None
-    
-    # App Settings
-    environment: str = "development"
-    debug: bool = True
-    log_level: str = "INFO"
-    
-    class Config:
-        env_file = ".env"
-        extra = "allow"  # Allow extra fields from .env
+    """
+    Application Settings using Pydantic BaseSettings.
+    Loads variables from .env file and environment.
+    """
+    # Stability AI API for image generation
+    STABILITY_API_KEY: Optional[str] = None
 
-@lru_cache()
-def get_settings() -> Settings:
-    return Settings() 
+    # Pexels API Key for image search fallback
+    PEXELS_API_KEY: Optional[str] = None
+
+    # Azure OpenAI (for story text generation)
+    AZURE_OPENAI_ENDPOINT: Optional[str] = None
+    AZURE_OPENAI_API_KEY: Optional[str] = None
+    AZURE_OPENAI_API_VERSION: Optional[str] = None
+    AZURE_OPENAI_DEPLOYMENT_NAME: Optional[str] = None
+
+    # Azure Speech (for audio generation)
+    AZURE_SPEECH_KEY: Optional[str] = None
+    AZURE_SPEECH_REGION: Optional[str] = None
+
+    # Redis URL for Celery broker and cache
+    # Use different DB numbers for broker and results backend, e.g., /0 and /1
+    REDIS_URL: str = "redis://redis:6379/0"
+
+    # Firebase Service Account
+    # This should be the full JSON string, not a path to the file.
+    GOOGLE_APPLICATION_CREDENTIALS_PATH: Optional[str] = None
+    FIREBASE_STORAGE_BUCKET: Optional[str] = None
+
+    # Default values
+    DEFAULT_PERSONA: str = "narrator"
+    DEFAULT_LANGUAGE: str = "en"
+    TARGET_LANGUAGE: str = "en"
+    RUNWARE_API_KEY: Optional[str] = None
+
+    class Config:
+        case_sensitive = True
+
+# Create a single instance of the settings
+settings = Settings() 

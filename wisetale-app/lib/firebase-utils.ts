@@ -85,6 +85,18 @@ export const updateUserProfile = async (userId: string, data: any) => {
   }
 };
 
+export const getUserStories = async (userId: string) => {
+  try {
+    const storiesRef = collection(db, "users", userId, "stories");
+    const q = query(storiesRef, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    const stories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return { stories, error: null };
+  } catch (error: any) {
+    return { stories: [], error: error.message };
+  }
+};
+
 // Generation utilities
 export const getUserGenerations = async (userId: string, limitCount: number = 10) => {
   try {

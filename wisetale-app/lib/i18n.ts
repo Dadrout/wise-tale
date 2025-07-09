@@ -17,6 +17,9 @@ export interface Translations {
   // Generation form
   subject: string;
   topic: string;
+  voice: string;
+  femaleVoice: string;
+  maleVoice: string;
   generateVideo: string;
   generating: string;
   storyGenerator: string;
@@ -24,6 +27,9 @@ export interface Translations {
   chooseSubject: string;
   topicPlaceholder: string;
   generatingStory: string;
+  language: string;
+  english: string;
+  russian: string;
   
   // Subjects
   history: string;
@@ -86,6 +92,9 @@ export const translations: Record<Language, Translations> = {
     // Generation form
     subject: "Subject",
     topic: "Topic",
+    voice: "Voice",
+    femaleVoice: "Female",
+    maleVoice: "Male",
     generateVideo: "Generate Video",
     generating: "Generating...",
     storyGenerator: "Story Generator",
@@ -93,6 +102,9 @@ export const translations: Record<Language, Translations> = {
     chooseSubject: "Choose your subject...",
     topicPlaceholder: "e.g., French Revolution, Ancient Egypt, Socratic Method...",
     generatingStory: "Generating Your Story...",
+    language: "Language",
+    english: "English",
+    russian: "Russian",
     
     // Subjects
     history: "History",
@@ -154,6 +166,9 @@ export const translations: Record<Language, Translations> = {
     // Generation form
     subject: "Предмет",
     topic: "Тема",
+    voice: "Голос",
+    femaleVoice: "Женский",
+    maleVoice: "Мужской",
     generateVideo: "Создать видео",
     generating: "Создание...",
     storyGenerator: "Генератор историй",
@@ -161,6 +176,9 @@ export const translations: Record<Language, Translations> = {
     chooseSubject: "Выберите предмет...",
     topicPlaceholder: "напр., Французская революция, Древний Египет, Метод Сократа...",
     generatingStory: "Создание вашей истории...",
+    language: "Язык",
+    english: "Английский",
+    russian: "Русский",
     
     // Subjects
     history: "История",

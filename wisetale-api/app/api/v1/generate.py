@@ -1,726 +1,579 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from uuid import uuid4
-from datetime import datetime
-import hashlib
-import json
 import os
-# Временно упростим без Firebase для быстрого тестирования
-# from app.services.firebase_service import firebase_service
+import logging
+import json
+import requests
+import subprocess
+import shutil
+import tempfile
+from pathlib import Path
+import re
+import math
+import wave
+import contextlib
+import asyncio
 
-router = APIRouter(prefix="/generate", tags=["generate"])
+from app.celery_utils import celery_app
+from celery.result import AsyncResult
+from app.core.config import settings
+from app.services.firebase_service import firebase_service
+from app.services.runware_service import runware_service
+from app.services.pexels_service import pexels_service
+from app.api.dependencies import get_current_user
+from openai import AzureOpenAI
+import azure.cognitiveservices.speech as speechsdk
+from datetime import datetime
+
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+router = APIRouter(tags=["generate"])
 
 class GenerateRequest(BaseModel):
-    subject: str  # history, geography, philosophy
-    topic: str    # e.g. "French Revolution", "Ancient Egypt"
-    user_id: int
+    subject: str
+    topic: str
     persona: str = "narrator"
-    language: str = "en"
+    language: str = "en-US"
+    voice: str = "female" # 'female' or 'male'
 
-class GenerateResponse(BaseModel):
-    id: str
-    video_url: str
-    audio_url: str
-    transcript: str
-    images_used: list[str]
-    created_at: str
-    status: str = "completed"
+class TaskCreationResponse(BaseModel):
+    task_id: str
 
 class VideoGenerationPipeline:
-    
     def _clean_markdown_for_speech(self, text: str) -> str:
-        """
-        УСИЛЕННАЯ очистка markdown для аудио и субтитров
-        Полностью удаляет заголовки и форматирование
-        """
-        import re
-        
-        # Разбиваем на строки для обработки
-        lines = text.split('\n')
-        cleaned_lines = []
-        
-        for line in lines:
-            original_line = line
-            line = line.strip()
-            
-            # Полностью пропускаем строки заголовков (начинающиеся с #)
-            if line.startswith('#'):
-                print(f"🗑️  Removing header: {line[:50]}...")
-                continue
-            
-            # НОВОЕ: Удаляем заголовки-названия (короткие строки с названиями)
-            # Проверяем подозрительные паттерны ТОЛЬКО коротких заголовков
-            suspicious_patterns = [
-                r'^\*\*.*Tale.*\*\*$',          # **The Tale of...**
-                r'^\*\*.*Story.*\*\*$',         # **The Story of...**
-                r'^\*\*.*Fairy Tale.*\*\*$',    # **The Fairy Tale of...**
-                r'^\*\*[^.]{1,40}\*\*$',        # **короткий текст без точек** (до 40 символов)
-                r'^The .* of .{1,30}$',         # The [Something] of [Short] (до 30 символов)
-                r'^A .* Tale.{1,20}$',          # A [Something] Tale (до 20 символов)
-            ]
-            
-            is_title = False
-            for pattern in suspicious_patterns:
-                if re.match(pattern, line, re.IGNORECASE):
-                    print(f"🗑️  Removing title pattern: {line[:50]}...")
-                    is_title = True
-                    break
-            
-            if is_title:
-                continue
-                
-            # Пропускаем пустые строки и разделители
-            if not line or line.startswith('---') or line == '***':
-                continue
-            
-            # Очищаем markdown форматирование
-            line = re.sub(r'\*\*(.*?)\*\*', r'\1', line)  # **bold**
-            line = re.sub(r'\*(.*?)\*', r'\1', line)      # *italic*
-            line = re.sub(r'_(.*?)_', r'\1', line)        # _underline_
-            line = re.sub(r'`(.*?)`', r'\1', line)        # `code`
-            
-            # Очищаем остатки markdown символов
-            line = line.replace('**', '').replace('*', '').replace('_', '')
-            line = line.replace('###', '').replace('##', '').replace('#', '')
-            line = line.replace('---', '').replace('***', '')
-            
-            # Проверяем что строка не является коротким заголовком после очистки
-            clean_line = line.strip()
-            if clean_line and len(clean_line) > 10:  # Минимум 10 символов для реального предложения
-                cleaned_lines.append(clean_line)
-            elif clean_line and len(clean_line) <= 10:
-                print(f"🗑️  Removing short title: {clean_line}")
-        
-        # Объединяем в единый текст
-        clean_text = ' '.join(cleaned_lines)
-        
-        # Убираем лишние пробелы и точки
-        clean_text = re.sub(r'\s+', ' ', clean_text)
-        clean_text = re.sub(r'\.+', '.', clean_text)
-        clean_text = clean_text.strip()
-        
-        print(f"📝 Cleaned text: {len(text)} → {len(clean_text)} chars")
-        return clean_text
-    """Video generation pipeline with Firebase storage"""
-    
-    async def generate_story_text(self, subject: str, topic: str) -> str:
-        """Generate educational fairy tale using Azure OpenAI"""
-        try:
-            import os
-            from openai import AzureOpenAI
-            
-            # Azure OpenAI configuration
-            client = AzureOpenAI(
-                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", "https://your-resource.openai.azure.com/"),
-                api_key=os.getenv("AZURE_OPENAI_API_KEY", "mock-key"),
-                api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
-            )
-            
-            prompt = f"""You are an expert historian writing educational content for students. Create a historically accurate fairy tale about {topic} that teaches REAL, SPECIFIC {subject} knowledge with concrete facts, dates, and names.
+        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+        text = re.sub(r'_(.*?)_', r'\1', text)
+        text = re.sub(r'#+\s*', '', text)
+        text = text.replace('\n', ' ').strip()
+        return text
 
-CRITICAL FORMATTING REQUIREMENTS:
-- NO TITLES OR HEADERS at the beginning or anywhere in the text
-- NO markdown formatting (**bold**, *italic*, ###headers)
-- Write as continuous narrative text only
-- Do NOT include phrases like "The Tale of", "The Story of", or similar titles
+    def _seconds_to_srt_time(self, seconds: float) -> str:
+        millis = int((seconds - int(seconds)) * 1000)
+        mins, secs = divmod(int(seconds), 60)
+        hours, mins = divmod(mins, 60)
+        return f"{hours:02d}:{mins:02d}:{secs:02d},{millis:03d}"
 
-MANDATORY HISTORICAL CONTENT REQUIREMENTS:
-- Start IMMEDIATELY with "Once upon a time..." (no title before)
-- Include MINIMUM 8 specific historical facts with EXACT DATES and REAL NAMES
-- NO GENERIC PHRASES like "great events" or "complex causes" - use SPECIFIC EVENTS
-- Each paragraph must contain verifiable historical information
-- End with "...and they all learned wisely ever after!"
-
-SPECIFIC FACT REQUIREMENTS for {topic}:
-- Exact dates (years, specific events)
-- Real historical figures with their actual names and roles
-- Specific battles, treaties, laws, or discoveries
-- Actual places, cities, kingdoms, or empires
-- Real social, political, or cultural changes
-- Concrete consequences and impacts
-
-FORBIDDEN VAGUE LANGUAGE:
-- ❌ "great events that shaped our world"
-- ❌ "complex historical causes"  
-- ❌ "key figures and events"
-- ❌ "impact was felt across society"
-- ✅ Use: "In 1854, Commodore Matthew Perry..."
-- ✅ Use: "The Meiji Restoration of 1868..."
-- ✅ Use: "Emperor Meiji abolished the samurai class..."
-
-EXAMPLE SPECIFIC CONTENT for Japan:
-- "the Heian period (794-1185) established the samurai warrior class"
-- "Commodore Matthew Perry's Black Ships arrived in 1854"
-- "the Meiji Restoration in 1868 overthrew the Tokugawa shogunate"
-- "Japan defeated Russia in the Russo-Japanese War (1904-1905)"
-
-Write educational content that a {subject} teacher would use in class. Focus on teaching REAL historical knowledge, not storytelling fluff.
-
-Topic: {topic}
-Subject: {subject}
-
-Generate a fact-rich educational fairy tale with specific dates, names, and events about {topic}!"""
-
-            # Try Azure OpenAI first
-            if os.getenv("AZURE_OPENAI_API_KEY") and os.getenv("AZURE_OPENAI_API_KEY") != "mock-key":
-                try:
-                    response = client.chat.completions.create(
-                        model=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
-                        messages=[
-                            {"role": "system", "content": "You are an expert educational content creator who writes engaging fairy tales that teach real facts."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        max_tokens=1000,
-                        temperature=0.8
-                    )
-                    
-                    story = response.choices[0].message.content.strip()
-                    print(f"🤖 Generated fairy tale using Azure OpenAI ({len(story)} characters)")
-                    return story
-                    
-                except Exception as e:
-                    print(f"🤖 Azure OpenAI failed: {e}")
-                    
-        except ImportError:
-            print("🤖 OpenAI library not available")
-        
-        # Intelligent fallback when Azure OpenAI is not available
-        # This creates historically accurate educational content by topic and subject
-        def create_educational_story(topic, subject):
-            """Create educational fairy tale with CLEAN text - no markdown, complete sentences"""
-            
-            # Исторические шаблоны с РЕАЛЬНЫМИ фактами
-            history_templates = {
-                "World War 2": {
-                    "context": "the dark years of 1939 to 1945 when the world was torn apart by the greatest conflict in human history",
-                    "key_events": [
-                        "Adolf Hitler invaded Poland on September 1, 1939, prompting Britain and France to declare war on Germany",
-                        "the Blitzkrieg strategy allowed Nazi Germany to conquer France, Denmark, Norway, and much of Eastern Europe by 1940",
-                        "the Battle of Britain saw the Royal Air Force defeat the German Luftwaffe in aerial combat from July to October 1940",
-                        "Operation Barbarossa began June 22, 1941, as Nazi Germany launched a massive invasion of the Soviet Union",
-                        "Japan attacked Pearl Harbor on December 7, 1941, bringing the United States into the global conflict",
-                        "the Holocaust systematically murdered six million Jews and millions of others in Nazi concentration camps",
-                        "D-Day landings on June 6, 1944, opened a second front in Western Europe as Allies invaded Normandy",
-                        "the war ended with Germany's surrender on May 8, 1945, and Japan's surrender on September 2, 1945, after atomic bombings"
-                    ],
-                    "significance": "World War 2 established the United States and Soviet Union as superpowers, led to the United Nations, and fundamentally changed global politics and human rights"
-                },
-                "Ancient Egypt": {
-                    "context": "the magnificent civilization that flourished along the Nile River for over 3000 years",
-                    "key_events": [
-                        "Pharaoh Menes united Upper and Lower Egypt around 3100 BCE, creating the first Egyptian dynasty",
-                        "the Great Pyramid of Giza was built around 2580 BCE for Pharaoh Khufu, becoming one of the Seven Wonders of the Ancient World",
-                        "Pharaoh Hatshepsut ruled Egypt for 22 years around 1479-1458 BCE, becoming one of the most successful female pharaohs",
-                        "Pharaoh Akhenaten introduced monotheism around 1353 BCE, worshipping only the sun god Aten",
-                        "King Tutankhamun became pharaoh at age 9 in 1332 BCE, and his tomb was discovered intact in 1922",
-                        "Queen Cleopatra VII ruled from 69-30 BCE, forming alliances with Julius Caesar and Mark Antony",
-                        "the Rosetta Stone was carved in 196 BCE, later helping scholars decode Egyptian hieroglyphs in the 1820s"
-                    ],
-                    "significance": "Ancient Egypt gave us writing systems, medical knowledge, architectural techniques, and mathematical concepts that still influence our world today"
-                },
-                "English History": {
-                    "context": "the fascinating island nation that shaped global history through centuries of kings, queens, and remarkable achievements",
-                    "key_events": [
-                        "William the Conqueror defeated King Harold at the Battle of Hastings on October 14, 1066, beginning Norman rule",
-                        "King John signed the Magna Carta on June 15, 1215, limiting royal power and establishing basic legal rights",
-                        "the Black Death killed one third of England's population between 1348 and 1351, transforming medieval society",
-                        "Henry VIII broke from the Catholic Church in 1534, establishing the Church of England and changing religion forever",
-                        "Queen Elizabeth I defeated the Spanish Armada in 1588, establishing England as a major naval power",
-                        "the English Civil War from 1642-1651 resulted in King Charles I being executed and Oliver Cromwell ruling as Lord Protector",
-                        "the Industrial Revolution began in England around 1760, transforming manufacturing and creating the modern world",
-                        "Queen Victoria ruled for 63 years from 1837-1901, overseeing the expansion of the British Empire across the globe"
-                    ],
-                    "significance": "English history shaped modern democracy, law, language, and culture that spread across the world through the British Empire"
-                }
-            }
-            
-            # Get template or create generic one
-            template = history_templates.get(topic, {
-                "context": f"the historical period when {topic} shaped human civilization",
-                "key_events": [
-                    f"{topic} emerged from complex historical causes and conditions during this time period",
-                    f"key figures and events in {topic} changed the course of history through their actions",
-                    f"the impact of {topic} was felt across society and culture in lasting ways",
-                    f"the legacy of {topic} continues to influence our world today through its achievements"
-                ],
-                "significance": f"{topic} teaches us important lessons about {subject} and human nature"
-            })
-            
-            # Create CLEAN educational narrative with real historical content (NO MARKDOWN)
-            events = template['key_events']
-            
-            # Limit to 6 key events for manageable length
-            selected_events = events[:6]
-            
-            story_parts = [
-                f"Once upon a time, in {template['context']}, brave young scholars embarked on a magical journey through time to discover the true history of {topic}."
-            ]
-            
-            # Add each historical fact as part of the journey (NO INCOMPLETE SENTENCES)
-            for i, event in enumerate(selected_events):
-                if i == 0:
-                    story_parts.append(f"Their first amazing discovery was that {event}. The young historians gasped in wonder at this incredible transformation that changed everything they thought they knew.")
-                elif i == 1:
-                    story_parts.append(f"As they traveled deeper into the past, the wise chronicles revealed that {event}. This remarkable truth showed them how history unfolds through the actions of real people with real courage.")
-                elif i == 2:
-                    story_parts.append(f"The mystical time portal then transported them to witness how {event}. The students marveled at the courage and determination of those who shaped these pivotal events.")
-                elif i == 3:
-                    story_parts.append(f"In their continuing quest for knowledge, they learned that {event}. This pivotal moment demonstrated how individual choices can change the course of entire nations.")
-                elif i == 4:
-                    story_parts.append(f"The ancient scrolls of wisdom then revealed that {event}. The young scholars understood how this connected to their own lives and the modern world around them.")
-                elif i == 5:
-                    story_parts.append(f"Finally, the guardians of history showed them that {event}. This final lesson helped them see how the past continues to influence our present day lives.")
-            
-            # Complete conclusion (NO INCOMPLETE SENTENCES)
-            story_parts.extend([
-                f"Through their magical journey of discovery, the students learned that {template['significance']}. With hearts full of historical knowledge and wonder, they realized that studying {topic} reveals the fascinating story of human civilization.",
-                f"And so, dear young scholars, remember that by understanding {topic}, you unlock the secrets of how societies rise and change, how people overcome challenges, and how the past shapes our future. For in the kingdom of {subject}, every historical event teaches us valuable lessons about courage, wisdom, and the power of human achievement. They all learned wisely and lived happily ever after, carrying this knowledge with them forever."
-            ])
-            
-            # Join parts and ensure clean text (NO MARKDOWN SYMBOLS)
-            story = " ".join(story_parts)  # Use single space, not double newlines
-            
-            # Clean any remaining markdown symbols
-            story = story.replace('**', '').replace('###', '').replace('---', '')
-            story = story.replace('#', '').replace('*', '').replace('_', '')
-            
-            return story
-        
-        # Use the intelligent educational story generator
-        story = create_educational_story(topic, subject)
-        
-        print(f"📚 Generated educational fairy tale with curated facts ({len(story)} characters)")
-        return story
-
-    async def generate_audio_from_text(self, text: str, persona: str = "narrator") -> str:
-        """Generate high-quality audio using Azure Speech Services with SSML"""
-        try:
-            import os
-            import azure.cognitiveservices.speech as speechsdk
-            from pathlib import Path
-            
-            # Azure Speech configuration
-            speech_key = os.getenv("AZURE_SPEECH_KEY", "mock-key")
-            speech_region = os.getenv("AZURE_SPEECH_REGION", "eastus")
-            
-            # Создаем папку для аудио
-            audio_dir = Path("generated_audio")
-            audio_dir.mkdir(exist_ok=True)
-            
-            # Используем умную очистку markdown для аудио
-            clean_text = self._clean_markdown_for_speech(text)
-            
-            # Try Azure Speech Services first
-            if speech_key != "mock-key":
-                try:
-                    # Configure speech service with higher quality
-                    speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=speech_region)
-                    
-                    # Set high quality output format
-                    speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3)
-                    
-                    # Choose voice - Brian Multilingual Neural with SSML for better quality
-                    voice_name = "en-US-BrianMultilingualNeural"
-                    speech_config.speech_synthesis_voice_name = voice_name
-                    
-                    # Generate audio file
-                    audio_id = uuid4().hex
-                    audio_path = audio_dir / f"{audio_id}.wav"
-                    
-                    # Create SSML for better speech quality and timing
-                    ssml_text = f"""
-                    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                        <voice name="{voice_name}">
-                            <prosody rate="0.9" pitch="+2%">
-                                {clean_text}
-                            </prosody>
-                        </voice>
-                    </speak>
-                    """
-                    
-                    audio_config = speechsdk.audio.AudioOutputConfig(filename=str(audio_path))
-                    synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
-                    
-                    # Synthesize speech using SSML for better quality
-                    result = synthesizer.speak_ssml_async(ssml_text).get()
-                    
-                    if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-                        # Convert to high quality WAV
-                        audio_url = f"http://localhost:8000/audio/{audio_id}.wav"
-                        print(f"🎵 High-quality Azure Speech generated: {audio_path} ({audio_path.stat().st_size} bytes)")
-                        return audio_url
-                    else:
-                        print(f"🎵 Azure Speech failed: {result.reason}")
-                        
-                except Exception as e:
-                    print(f"🎵 Azure Speech error: {e}")
-            
-        except ImportError:
-            print("🎵 Azure Speech SDK not available")
-        
-        # Fallback to mock URL
-        print(f"🎵 Using mock audio URL (Azure Speech not configured)")
-        return f"https://storage.googleapis.com/wisetale-audio/{uuid4().hex}.mp3"
-
-    async def search_images_pexels(self, topic: str, subject: str, story_text: str = "", count: int = 8) -> list[str]:
-        """Enhanced Pexels API search using story content analysis"""
-        try:
-            # Используем реальный Pexels API с улучшенным поиском
-            from app.services.pexels_service import pexels_service
-            
-            # Получаем разнообразные изображения по теме И содержанию истории
-            diverse_images = await pexels_service.get_diverse_images(
-                topic=topic, 
-                subject=subject, 
-                count=count,
-                story_text=story_text  # Передаем текст истории для анализа!
-            )
-            
-            # Извлекаем URL'ы
-            image_urls = [img.get('url', img.get('medium_url', '')) for img in diverse_images]
-            
-            # Если API не сработал, используем fallback
-            if not image_urls:
-                print(f"Pexels API failed, using fallback images for {topic}")
-                fallback_images = [
-                    "https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg",
-                    "https://images.pexels.com/photos/159775/library-books-education-literature-159775.jpeg", 
-                    "https://images.pexels.com/photos/256541/pexels-photo-256541.jpeg",
-                    "https://images.pexels.com/photos/207662/pexels-photo-207662.jpeg",
-                    "https://images.pexels.com/photos/415071/pexels-photo-415071.jpeg",
-                    "https://images.pexels.com/photos/1370295/pexels-photo-1370295.jpeg",
-                    "https://images.pexels.com/photos/1181467/pexels-photo-1181467.jpeg",
-                    "https://images.pexels.com/photos/1116302/pexels-photo-1116302.jpeg"
-                ]
-                return fallback_images[:count]
-            
-            print(f"Found {len(image_urls)} enhanced Pexels images for '{topic}' in {subject} (using story context)")
-            return image_urls[:count]
-            
-        except Exception as e:
-            print(f"Pexels search error for {topic}: {e}")
-            # Fallback к базовым изображениям
-            fallback_images = [
-                "https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg",
-                "https://images.pexels.com/photos/159775/library-books-education-literature-159775.jpeg", 
-                "https://images.pexels.com/photos/256541/pexels-photo-256541.jpeg",
-                "https://images.pexels.com/photos/207662/pexels-photo-207662.jpeg",
-                "https://images.pexels.com/photos/415071/pexels-photo-415071.jpeg",
-                "https://images.pexels.com/photos/1370295/pexels-photo-1370295.jpeg"
-            ]
-            return fallback_images[:count]
-
-    async def create_video_slideshow(self, audio_url: str, images: list[str], transcript: str) -> str:
-        """Create REAL video slideshow with smooth transitions and perfect audio sync"""
-        import tempfile
-        import subprocess
-        import requests
-        import os
-        from pathlib import Path
-        
-        try:
-            print(f"🎬 Creating REAL fairy tale video with {len(images)} magical images")
-            
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-                
-                # 1. Скачиваем изображения
-                image_paths = []
-                for i, img_url in enumerate(images):
-                    try:
-                        print(f"📥 Downloading image {i+1}/{len(images)}")
-                        response = requests.get(img_url, timeout=30)
-                        if response.status_code == 200:
-                            img_path = temp_path / f"image_{i:03d}.jpg"
-                            img_path.write_bytes(response.content)
-                            image_paths.append(str(img_path))
-                    except Exception as e:
-                        print(f"Failed to download image {i}: {e}")
-                
-                if not image_paths:
-                    print("❌ No images downloaded, using mock URL")
-                    return f"https://storage.googleapis.com/wisetale-videos/{uuid4().hex}.mp4"
-                
-                # 2. Получаем ТОЧНУЮ длительность аудио
-                audio_duration = None
-                audio_file_path = None
-                
-                if audio_url and audio_url.startswith("http://localhost:8000/audio/"):
-                    audio_filename = audio_url.split("/")[-1]
-                    audio_file_path = Path("generated_audio") / audio_filename
-                    if audio_file_path.exists():
-                        try:
-                            result = subprocess.run([
-                                'ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
-                                '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_file_path)
-                            ], capture_output=True, text=True)
-                            if result.returncode == 0:
-                                audio_duration = float(result.stdout.strip())
-                                print(f"🎵 Real audio duration: {audio_duration:.2f} seconds")
-                        except Exception as e:
-                            print(f"Error getting audio duration: {e}")
-                
-                # Если аудио недоступно, используем расчетное время
-                if audio_duration is None:
-                    # Расчет приблизительной длительности на основе текста (примерно 150 слов в минуту)
-                    word_count = len(transcript.split())
-                    audio_duration = max(30, (word_count / 150) * 60)  # минимум 30 секунд
-                    print(f"🎵 Estimated audio duration: {audio_duration:.2f} seconds (based on {word_count} words)")
-                
-                # 3. Создаем видео с переходами между изображениями
-                # Используем фильтр для создания слайдшоу с плавными переходами
-                
-                # Создаем субтитры ТОЧНО синхронизированные с аудио
-                srt_file = temp_path / "subtitles.srt"
-                self._create_subtitles(transcript, str(srt_file), audio_duration)
-                
-                # 4. Создаем видео через ffmpeg с переходами
-                output_video = temp_path / "fairy_tale_video.mp4"
-                
-                # Построение команды ffmpeg для создания слайдшоу с переходами
-                ffmpeg_cmd = ['ffmpeg', '-y']
-                
-                # Добавляем все изображения как входы
-                for img_path in image_paths:
-                    ffmpeg_cmd.extend(['-loop', '1', '-t', str(audio_duration / len(image_paths) + 1), '-i', img_path])
-                
-                # Добавляем аудио если есть
-                if audio_file_path and audio_file_path.exists():
-                    ffmpeg_cmd.extend(['-i', str(audio_file_path)])
-                    print(f"🎵 Adding real audio to video: {audio_file_path}")
-                
-                # Создаем фильтр для переходов между изображениями
-                filter_complex = []
-                inputs = len(image_paths)
-                
-                # Подготавливаем каждое изображение
-                for i in range(inputs):
-                    filter_complex.append(f"[{i}:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS[v{i}]")
-                
-                # Создаем переходы между изображениями
-                if inputs > 1:
-                    # Длительность каждого изображения и перехода
-                    segment_duration = audio_duration / inputs
-                    transition_duration = min(1.0, segment_duration * 0.2)  # 20% времени на переход, макс 1 сек
-                    
-                    # Создаем цепочку переходов
-                    current_output = "v0"
-                    for i in range(1, inputs):
-                        offset = i * segment_duration - transition_duration
-                        next_output = f"tmp{i}" if i < inputs - 1 else "video_with_transitions"
-                        filter_complex.append(
-                            f"[{current_output}][v{i}]xfade=transition=fade:duration={transition_duration}:offset={offset}[{next_output}]"
-                        )
-                        current_output = next_output
-                else:
-                    # Если только одно изображение
-                    filter_complex.append(f"[v0]trim=duration={audio_duration}[video_with_transitions]")
-                
-                # Добавляем субтитры
-                filter_complex.append(f"[video_with_transitions]subtitles={srt_file}:force_style='Fontsize=18,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2,BackColour=&H80000000,Bold=1'[final_video]")
-                
-                # Собираем все фильтры
-                ffmpeg_cmd.extend(['-filter_complex', ';'.join(filter_complex)])
-                
-                # Выходные параметры
-                ffmpeg_cmd.extend([
-                    '-map', '[final_video]',
-                    '-c:v', 'libx264',
-                    '-preset', 'medium',
-                    '-crf', '23',
-                    '-pix_fmt', 'yuv420p',
-                    '-r', '25'
-                ])
-                
-                # Добавляем аудио если есть
-                if audio_file_path and audio_file_path.exists():
-                    ffmpeg_cmd.extend(['-map', f'{inputs}:a', '-c:a', 'aac', '-b:a', '128k'])
-                    # Точно обрезаем по длительности аудио
-                    ffmpeg_cmd.extend(['-t', str(audio_duration)])
-                else:
-                    # Если нет аудио, создаем тишину
-                    ffmpeg_cmd.extend(['-f', 'lavfi', '-i', f'anullsrc=channel_layout=stereo:sample_rate=48000', '-c:a', 'aac', '-shortest'])
-                
-                ffmpeg_cmd.append(str(output_video))
-                
-                print(f"🎥 Running ffmpeg with transitions...")
-                print(f"Command: {' '.join(ffmpeg_cmd[:10])}... (truncated)")
-                
-                result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=180)
-                
-                if result.returncode == 0 and output_video.exists():
-                    # Проверяем финальную длительность видео
-                    try:
-                        check_result = subprocess.run([
-                            'ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
-                            '-of', 'default=noprint_wrappers=1:nokey=1', str(output_video)
-                        ], capture_output=True, text=True)
-                        if check_result.returncode == 0:
-                            final_duration = float(check_result.stdout.strip())
-                            print(f"✅ Video created! Duration: {final_duration:.2f}s (target: {audio_duration:.2f}s)")
-                    except:
-                        pass
-                    
-                    print(f"✅ Video created successfully! Size: {output_video.stat().st_size} bytes")
-                    
-                    # Создаем папку для видео если её нет
-                    video_dir = Path("generated_videos")
-                    video_dir.mkdir(exist_ok=True)
-                    
-                    # Копируем видео в постоянную папку
-                    video_id = uuid4().hex
-                    final_video_path = video_dir / f"{video_id}.mp4"
-                    import shutil
-                    shutil.copy2(output_video, final_video_path)
-                    
-                    # Возвращаем URL для доступа к видео
-                    video_url = f"http://localhost:8000/videos/{video_id}.mp4"
-                    
-                    print(f"🎯 Video saved to: {final_video_path}")
-                    print(f"📺 Video accessible at: {video_url}")
-                    return video_url
-                else:
-                    print(f"❌ FFmpeg failed: {result.stderr}")
-                    return f"https://storage.googleapis.com/wisetale-videos/{uuid4().hex}.mp4"
-                    
-        except Exception as e:
-            print(f"💥 Video creation error: {e}")
-            import traceback
-            traceback.print_exc()
-            return f"https://storage.googleapis.com/wisetale-videos/{uuid4().hex}.mp4"
-    
-    def _create_subtitles(self, transcript: str, srt_file: str, total_duration: float):
-        """Create perfectly synchronized SRT subtitle file from transcript"""
-        # Используем умную очистку markdown для субтитров
-        clean_text = self._clean_markdown_for_speech(transcript)
-        
-        # Разбиваем транскрипт на предложения
-        import re
-        
-        # Простое разбиение по точкам для лучшей синхронизации
-        sentences = [s.strip() for s in clean_text.split('.') if s.strip()]
-        
-        # Добавляем точки только к предложениям, которые их не имеют
-        for i, sentence in enumerate(sentences):
-            if not sentence.endswith('.'):
-                sentences[i] = sentence + '.'
-        
+    def _create_subtitles(self, transcript: str, srt_file_path: Path, total_duration: float):
+        sentences = [s.strip() for s in transcript.split('.') if s.strip()]
         if not sentences:
             return
-            
-        # ПРОСТОЕ равномерное распределение по времени аудио с УВЕЛИЧЕННОЙ задержкой
-        # Добавляем 2.5-секундную задержку чтобы субтитры точно НЕ опережали аудио
-        subtitle_delay = 2.5  # секунды (увеличено для лучшей синхронизации)
-        available_duration = total_duration - subtitle_delay
-        duration_per_sentence = available_duration / len(sentences)
         
-        print(f"⏱️  Subtitle timing: delay={subtitle_delay}s, duration_per_sentence={duration_per_sentence:.2f}s")
+        num_sentences = len(sentences)
+        duration_per_sentence = total_duration / num_sentences
         
-        with open(srt_file, 'w', encoding='utf-8') as f:
+        with open(srt_file_path, 'w', encoding='utf-8') as f:
             for i, sentence in enumerate(sentences):
-                # Простая линейная привязка ко времени с задержкой
-                start_time = subtitle_delay + (i * duration_per_sentence)
-                end_time = subtitle_delay + ((i + 1) * duration_per_sentence)
-                
-                # Убеждаемся, что не превышаем общую длительность
-                if end_time > total_duration:
-                    end_time = total_duration
-                
-                start_str = self._seconds_to_srt_time(start_time)
-                end_str = self._seconds_to_srt_time(end_time)
+                start_time = i * duration_per_sentence
+                end_time = (i + 1) * duration_per_sentence
                 
                 f.write(f"{i + 1}\n")
-                f.write(f"{start_str} --> {end_str}\n")
-                f.write(f"{sentence.strip()}\n\n")
-                
-                print(f"Subtitle {i+1}: {start_time:.2f}s - {end_time:.2f}s: {sentence.strip()[:50]}...")
-        
-        print(f"Created {len(sentences)} subtitles for {total_duration:.2f}s audio")
+                f.write(f"{self._seconds_to_srt_time(start_time)} --> {self._seconds_to_srt_time(end_time)}\n")
+                f.write(f"{sentence}.\n\n")
     
-    def _seconds_to_srt_time(self, seconds: float) -> str:
-        """Convert seconds to SRT time format (HH:MM:SS,mmm)"""
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        millisecs = int((seconds % 1) * 1000)
-        return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
+    async def generate_story_text(self, subject: str, topic: str, language: str = "en-US") -> str:
+        logger.info(f"Generating story text in {language} with Azure OpenAI...")
+        try:
+            client = AzureOpenAI(
+                azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+                api_key=settings.AZURE_OPENAI_API_KEY,
+                api_version="2024-02-01"
+            )
+            
+            system_prompt = f"You are an expert storyteller. Your task is to generate a detailed and engaging narrative about '{topic}' in the style of {subject}. The story MUST be written entirely in {language}. Do not use any other language."
+
+            # More intelligent prompt selection based on the subject
+            if subject.lower() in ["history", "historical events", "historical figures"]:
+                user_prompt = f"""
+Act as an expert historian and storyteller. Your task is to generate a detailed and historically accurate narrative about '{topic}'.
+
+First, create a clear plan for the story. This plan should outline the key sections:
+1.  **Introduction:** Set the scene and introduce the core conflict or context.
+2.  **Key Causes & Background:** Explain the main reasons leading up to the event.
+3.  **Major Events & Turning Points:** Detail the most significant moments in chronological order. Mention key figures, dates, and locations.
+4.  **Climax:** Describe the peak of the event or conflict.
+5.  **Resolution & Aftermath:** Explain the outcome and its immediate consequences.
+6.  **Conclusion & Legacy:** Summarize the event's long-term significance and what we can learn from it.
+
+Second, based on that plan, write a comprehensive and engaging story of at least 1000 words.
+The narrative should be rich with detail, creating a vivid atmosphere for the reader.
+The output MUST be only the final story text, written in {language}, without the plan, titles, or any other introductory text.
+IMPORTANT: The entire story must be in {language}.
+"""
+            else:
+                user_prompt = f"""
+As an expert storyteller, write a captivating and immersive short story about '{topic}' within the context of {subject}.
+Focus on building a strong narrative, developing characters, and creating a vivid atmosphere that brings the subject to life.
+The tone should be engaging and imaginative, suitable for a curious adult.
+Do not write a simple summary or a children's fairy tale.
+Ensure the story is complete and has a clear beginning, middle, and end of at least 1000 words.
+The output must be only the story text itself, written in {language}, without any introductions, summaries, or author's notes.
+IMPORTANT: The entire story must be in {language}.
+"""
+
+            response = client.chat.completions.create(
+                model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=3500
+            )
+            story = response.choices[0].message.content.strip()
+            logger.info(f"Successfully generated story text ({len(story)} chars) in {language}.")
+            return story
+        except Exception as e:
+            logger.error(f"Azure OpenAI text generation failed in {language}: {e}", exc_info=True)
+            raise
+
+    async def generate_audio_from_text(self, text: str, voice: str = "female", language: str = "en-US") -> tuple[str, float]:
+        logger.info(f"Generating audio in {language} with Azure Speech Service, voice '{voice}'...")
+
+        def _synthesize_sync():
+            try:
+                speech_config = speechsdk.SpeechConfig(subscription=settings.AZURE_SPEECH_KEY, region=settings.AZURE_SPEECH_REGION)
+                
+                # Set the output audio format for higher quality
+                speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3)
+                
+                # Select voice based on user choice
+                if voice.lower() == 'male':
+                    voice_name = "en-US-BrianMultilingualNeural"
+                else: # Default to female
+                    voice_name = "en-US-EmmaMultilingualNeural"
+
+                speech_config.speech_synthesis_voice_name = voice_name
+
+                output_dir = Path("generated_audio")
+                output_dir.mkdir(exist_ok=True)
+                audio_file_path = output_dir / f"{uuid4().hex}.mp3" # Output as MP3
+                
+                file_config = speechsdk.audio.AudioOutputConfig(filename=str(audio_file_path))
+                speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=file_config)
+                
+                # Using SSML to control the style of the speech and set language
+                # The "storytelling" style is removed as it's not supported by all languages in multilingual voices.
+                ssml_text = f"""
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="{language}">
+    <voice name="{voice_name}">
+        {text}
+    </voice>
+</speak>
+"""
+                result = speech_synthesizer.speak_ssml_async(ssml_text).get()
+                
+                if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                    # For MP3, we can't use `wave` to get duration. Let's estimate or use another tool if needed.
+                    # A simpler approach is to rely on the SDK if it provides it, or a library like mutagen.
+                    # For now, we will use a rough estimation or leave it for a proper library later.
+                    # Let's use `ffprobe` as a reliable way to get duration.
+                    try:
+                        cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_file_path)]
+                        duration_str = subprocess.check_output(cmd).decode('utf-8').strip()
+                        duration = float(duration_str)
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        # Fallback estimation if ffprobe is not available
+                        audio_data = result.audio_data
+                        duration = len(audio_data) / (24000 * 2) # A rough estimate for 24kHz, 16-bit mono
+                    
+                    logger.info(f"Audio generation successful. File: {audio_file_path}, Duration: {duration:.2f}s, Language: {language}")
+                    return str(audio_file_path), duration
+                else:
+                    error_details = result.cancellation_details
+                    logger.error(f"Audio synthesis failed: {result.reason}. Details: {error_details}")
+                    raise Exception(f"Audio synthesis failed: {result.reason}. Details: {error_details}")
+            except Exception as e:
+                logger.error(f"Azure Speech audio generation failed: {e}", exc_info=True)
+                raise
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _synthesize_sync)
+
+    async def _generate_prompts_from_story(self, story_text: str, topic: str, count: int, language: str = "en-US") -> list[str]:
+        logger.info(f"Generating {count} image prompts from story text in {language}...")
+        try:
+            client = AzureOpenAI(
+                azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+                api_key=settings.AZURE_OPENAI_API_KEY,
+                api_version="2024-02-01"
+            )
+
+            if count == 1:
+                # For single image, create one comprehensive prompt
+                prompt_generation_prompt = f"""
+Based on the following story about '{topic}', create a single, comprehensive, and vivid prompt for an AI image generator.
+The story is written in {language}. The prompt you generate MUST be in English.
+The prompt should capture the essence and main theme of the entire story in a cinematic, photorealistic style.
+Focus on the most important visual elements, atmosphere, and setting that would best represent this story.
+The prompt must be in English and should be detailed but concise.
+
+Story:
+\"\"\"{story_text}\"\"\"
+
+Create a single image prompt that captures the story's essence (in English):
+"""
+                
+                response = client.chat.completions.create(
+                    model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+                    messages=[{"role": "user", "content": prompt_generation_prompt}],
+                    temperature=0.7,
+                    max_tokens=200
+                )
+                
+                prompt = response.choices[0].message.content
+                if prompt:
+                    result = [prompt.strip().replace('"', '')]
+                    logger.info(f"Successfully generated single prompt: {result}")
+                    return result
+                else:
+                    logger.warning("OpenAI returned empty response for single prompt generation")
+                    return [f"A cinematic scene about {topic}"]
+            
+            else:
+                # Original logic for multiple images (kept for backward compatibility)
+                # Step 1: Divide the story into logical scenes or paragraphs
+                scene_division_prompt = f"""
+Analyze the following story about '{topic}' written in {language}. Divide it into {count} distinct scenes or key narrative moments.
+Each scene should represent a clear visual moment or a turning point in the story.
+Return the scenes as a JSON array of strings. For example: ["Scene 1 text...", "Scene 2 text...", ...].
+Do not include any other text or explanation in your response.
+
+Story:
+\"\"\"
+{story_text}
+\"\"\"
+"""
+                scene_response = client.chat.completions.create(
+                    model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+                    messages=[{"role": "user", "content": scene_division_prompt}],
+                    temperature=0.2,
+                    max_tokens=1000,
+                    response_format={"type": "json_object"}
+                )
+                
+                scenes_json = scene_response.choices[0].message.content
+                story_chunks = json.loads(scenes_json).get("scenes", [])
+                
+                if not story_chunks or len(story_chunks) < count:
+                    logger.warning(f"Could not divide story into {count} scenes. Falling back to chunking.")
+                    # Fallback to simple chunking if scene division fails
+                    words = story_text.split()
+                    chunk_size = math.ceil(len(words) / count)
+                    story_chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
+
+                # Step 2: Generate a prompt for each scene
+                tasks = []
+                for chunk in story_chunks:
+                    prompt_generation_prompt = f"""
+Based on the following story segment about '{topic}' (written in {language}), create a single, concise, and vivid prompt for an AI image generator.
+The prompt must be in English.
+The prompt should be in a "cinematic" or "photorealistic" style, focusing on visual details, atmosphere, and action.
+Do not just summarize the text. Create an artistic and descriptive instruction for generating a compelling image.
+
+Story Segment:
+\"\"\"{chunk}\"\"\"
+
+Prompt (in English):
+"""
+                    task = client.chat.completions.create(
+                        model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+                        messages=[{"role": "user", "content": prompt_generation_prompt}],
+                        temperature=0.7,
+                        max_tokens=150
+                    )
+                    tasks.append(task)
+                
+                # Use asyncio.gather with to_thread to run blocking calls concurrently
+                prompt_responses = []
+                for task in tasks:
+                    try:
+                        response = task.choices[0].message.content
+                        if response:
+                            prompt_responses.append(response.strip().replace('"', ''))
+                        else:
+                            logger.warning("OpenAI returned empty response for prompt generation")
+                            prompt_responses.append(f"A cinematic scene about {topic}")
+                    except Exception as e:
+                        logger.error(f"Error processing OpenAI response: {e}")
+                        prompt_responses.append(f"A cinematic scene about {topic}")
+                
+                prompts = list(prompt_responses)
+                logger.info(f"Successfully generated {len(prompts)} prompts: {prompts}")
+                return prompts
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode scenes from story: {e}. Raw response: {scenes_json}")
+            return [f"A cinematic scene about {topic}" for _ in range(count)]
+        except Exception as e:
+            logger.error(f"Failed to generate prompts from story: {e}")
+            return [f"A cinematic scene about {topic}" for _ in range(count)]
+
+
+    async def generate_images_ai(self, topic: str, subject: str, story: str, count: int = 1, language: str = "en-US") -> list[str]:
+        logger.info(f"Generating {count} AI images for '{topic}'...")
+        
+        image_prompts = await self._generate_prompts_from_story(story, topic, count, language)
+        if not image_prompts:
+            logger.warning("Could not generate prompts from story, falling back to Pexels.")
+            return await self.search_images_pexels_fallback(topic, subject, story, count)
+
+        ai_images = await runware_service.generate_images_from_prompts(image_prompts)
+        
+        if ai_images and len(ai_images) >= count // 2:
+            logger.info(f"Successfully generated {len(ai_images)} images with Runware.")
+            return ai_images
+        
+        logger.warning("Runware image generation failed or returned too few images, falling back to Pexels.")
+        return await self.search_images_pexels_fallback(topic, subject, story, count)
+
+    async def search_images_pexels_fallback(self, topic: str, subject: str, story_text: str = "", count: int = 8) -> list[str]:
+        logger.warning("Falling back to Pexels for image search.")
+        try:
+            pexels_query = f"{topic} {subject}"
+            images_data = await pexels_service.search_images(pexels_query, per_page=count)
+            if images_data:
+                urls = [img['url'] for img in images_data if 'url' in img]
+                logger.info(f"Found {len(urls)} images from Pexels fallback.")
+                return urls
+            return []
+        except Exception as e:
+            logger.error(f"Pexels fallback failed: {e}", exc_info=True)
+            return []
+            
+    async def download_image(self, url: str, path: Path) -> bool:
+        try:
+            response = requests.get(url, stream=True, timeout=20)
+            response.raise_for_status()
+            with open(path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to download image {url}: {e}")
+            return False
+
+    async def create_video_slideshow(self, audio_path: str, audio_duration: float, images: list[str], transcript: str) -> str:
+        logger.info(f"Starting video slideshow creation with {len(images)} images and {audio_duration:.2f}s audio.")
+        with tempfile.TemporaryDirectory() as temp_dir_str:
+            temp_dir = Path(temp_dir_str)
+            
+            downloaded_images = []
+            for i, img_url in enumerate(images):
+                img_path = temp_dir / f"image_{i:03d}.jpg"
+                if await self.download_image(img_url, img_path):
+                    downloaded_images.append(str(img_path))
+
+            if not downloaded_images:
+                raise ValueError("No images were successfully downloaded for video creation.")
+            
+            # Temporarily disabled subtitle generation to fix seeking issue
+            # srt_path = temp_dir / "subtitles.srt"
+            # self._create_subtitles(transcript, srt_path, audio_duration)
+
+            ffmpeg_cmd = ['ffmpeg', '-y']
+            
+            num_images = len(downloaded_images)
+            image_duration = audio_duration / num_images
+            fade_duration = 1.0
+            
+            for i, img_path in enumerate(downloaded_images):
+                ffmpeg_cmd.extend(['-loop', '1', '-t', str(image_duration), '-i', img_path])
+            ffmpeg_cmd.extend(['-i', audio_path])
+            
+            filter_complex = []
+            for i in range(num_images):
+                filter_complex.append(f"[{i}:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS[v{i}];")
+
+            prev_stream = "v0"
+            for i in range(1, num_images):
+                next_stream = "v" + str(i)
+                offset = (i * image_duration) - fade_duration
+                temp_stream = f"tmp{i}"
+                filter_complex.append(f"[{prev_stream}][{next_stream}]xfade=transition=fade:duration={fade_duration}:offset={offset}[{temp_stream}];")
+                prev_stream = temp_stream
+            
+            filter_complex.append(f"[{prev_stream}]setpts=PTS-STARTPTS[final_video]")
+
+            ffmpeg_cmd.extend(['-filter_complex', "".join(filter_complex)])
+            
+            output_dir = Path("generated_videos")
+            output_dir.mkdir(exist_ok=True)
+            final_video_path = output_dir / f"{uuid4().hex}.mp4"
+
+            ffmpeg_cmd.extend([
+                '-map', '[final_video]',
+                '-map', f'{num_images}:a',
+                '-c:v', 'libx264', '-preset', 'medium', '-crf', '23', '-pix_fmt', 'yuv420p',
+                '-r', '25',
+                '-movflags', '+faststart', # Added for better streaming
+                str(final_video_path)
+            ])
+            
+            logger.info(f"Running ffmpeg... {' '.join(ffmpeg_cmd)}")
+            try:
+                result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=600)
+                if result.returncode != 0:
+                    logger.error(f"FFmpeg failed with exit code {result.returncode}")
+                    logger.error(f"FFmpeg stderr: {result.stderr}")
+                    raise RuntimeError(f"FFmpeg execution failed: {result.stderr}")
+                
+                logger.info(f"Video created successfully: {final_video_path}")
+                return str(final_video_path)
+            
+            except subprocess.TimeoutExpired as e:
+                logger.error(f"FFmpeg command timed out after 600 seconds: {e}")
+                raise
+            except Exception as e:
+                logger.error(f"An error occurred during video creation: {e}", exc_info=True)
+                raise
 
 pipeline = VideoGenerationPipeline()
 
-@router.post("/", response_model=GenerateResponse)
-async def generate_video(req: GenerateRequest):
-    """Generate educational video (Legacy - Use /api/v1/tasks/generate for async processing)"""
+@celery_app.task(bind=True, name="generate_story_video_task")
+def generate_story_video_task(self, request_data: dict, user_id: str):
+    """
+    Celery task to generate a story video.
+    Now accepts user_id.
+    """
+    pipeline = VideoGenerationPipeline()
     
-    try:
-        # Step 1: Generate story text from topic
-        story_text = await pipeline.generate_story_text(req.subject, req.topic)
+    async def main_task_flow():
+        subject = request_data.get("subject", "general")
+        topic = request_data.get("topic", "a magical story")
+        voice = request_data.get("voice", "female") # Get voice from request_data
+        language = request_data.get("language", "en-US") # Get language from request_data
         
-        # Step 2: Convert text to speech  
-        audio_url = await pipeline.generate_audio_from_text(story_text, req.persona)
-        
-        # Step 3: Find relevant images from Pexels using story content analysis
-        images = await pipeline.search_images_pexels(req.topic, req.subject, story_text)
-        
-        # Step 4: Create video with slideshow, transitions and subtitles
-        video_url = await pipeline.create_video_slideshow(audio_url, images, story_text)
-        
-        # Step 5: Save to Firebase
-        generation_data = {
-            "subject": req.subject,
-            "topic": req.topic,
-        "user_id": req.user_id,
-            "persona": req.persona,
-            "language": req.language,
-            "video_url": video_url,
-            "audio_url": audio_url,
-            "transcript": story_text,
-            "images_used": images,
-            "status": "completed"
-        }
-        
-        # Временно используем mock ID
-        generation_id = f"gen_{uuid4().hex[:8]}"
-        
-        # Create response
-        result = GenerateResponse(
-            id=generation_id,
-            video_url=video_url,
-            audio_url=audio_url,
-            transcript=story_text,
-            images_used=images,
-            created_at=datetime.utcnow().isoformat(),
-            status="completed"
-        )
-        
-        return result
-        
-    except Exception as e:
-        print(f"Video generation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Video generation failed: {str(e)}")
+        try:
+            self.update_state(state='PROGRESS', meta={'status': 'Generating story text...', 'progress': 10})
+            story_text = await pipeline.generate_story_text(subject, topic, language)
 
-@router.get("/status/{generation_id}")
-async def get_generation_status(generation_id: str):
-    """Get the status of a video generation from Firebase"""
-    # Временно возвращаем mock данные  
-    data = {"status": "completed", "video_url": f"https://storage.googleapis.com/wisetale-videos/{generation_id}.mp4"}
+            self.update_state(state='PROGRESS', meta={'status': 'Generating audio...', 'progress': 30})
+            audio_path, audio_duration = await pipeline.generate_audio_from_text(story_text, voice, language)
+            
+            self.update_state(state='PROGRESS', meta={'status': 'Generating images...', 'progress': 50})
+            image_urls = await pipeline.generate_images_ai(topic, subject, story_text, count=1, language=language)
+            
+            self.update_state(state='PROGRESS', meta={'status': 'Creating video...', 'progress': 75})
+            local_video_path = await pipeline.create_video_slideshow(audio_path, audio_duration, image_urls, story_text)
+
+            self.update_state(state='PROGRESS', meta={'status': 'Uploading video to cloud...', 'progress': 90})
+            video_filename = f"generated_videos/{user_id}/{Path(local_video_path).name}"
+            final_video_url = await firebase_service.upload_file(local_video_path, video_filename)
+
+            # Clean up local files
+            os.remove(local_video_path)
+            os.remove(audio_path)
+            
+            self.update_state(state='PROGRESS', meta={'status': 'Saving story to database...', 'progress': 95})
+            story_data_to_save = {
+                "userId": user_id,
+                "taskId": self.request.id,
+                "subject": subject,
+                "topic": topic,
+                "videoUrl": final_video_url,
+                "storyText": story_text,
+                "createdAt": datetime.utcnow()
+            }
+            await firebase_service.save_story_to_firestore(user_id, story_data_to_save)
+            
+            logger.info(f"Task {self.request.id} completed successfully. Video URL: {final_video_url}")
+            return {'status': 'Success', 'video_url': final_video_url, 'progress': 100}
+            
+        except Exception as e:
+            self.update_state(state='FAILURE', meta={'exc_type': type(e).__name__, 'exc_message': str(e), 'progress': 0})
+            logger.error(f"Task {self.request.id} failed: {e}", exc_info=True)
+            # Here you could also store the failure in Firebase/Supabase against the user_id
+            return {'status': 'Failure', 'error': str(e), 'progress': 0}
+
+    return asyncio.run(main_task_flow())
+
+
+@router.post("/generate", response_model=TaskCreationResponse, status_code=202)
+async def create_generation_task(req: GenerateRequest, user: dict = Depends(get_current_user)):
+    """
+    Creates a new background task for video generation.
+    """
+    user_id = user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=403, detail="User ID not found in token")
+
+    # Pass the full request data to the Celery task
+    task_request_data = req.dict()
     
-    if not data:
-        raise HTTPException(status_code=404, detail="Generation not found")
+    task = generate_story_video_task.delay(task_request_data, user_id)
+    return TaskCreationResponse(task_id=task.id)
+
+
+@router.get("/tasks/{task_id}")
+async def get_task_status(task_id: str):
+    """
+    Retrieves the status of a generation task.
+    """
+    task_result = AsyncResult(task_id, app=celery_app)
     
-    return {
-        "id": generation_id, 
-        "status": data.get("status", "completed"), 
-        "url": data.get("video_url", "")
+    response = {
+        "task_id": task_id,
+        "status": task_result.status,
+        "info": task_result.info,
     }
+    
+    if task_result.failed():
+        response['error'] = str(task_result.result)
 
-@router.get("/user/{user_id}/recent")
-async def get_user_recent_generations(user_id: int, limit: int = 10):
-    """Get user's recent generations from Firebase"""
-    # Временно возвращаем mock данные
-    generations = [{"id": f"gen_{i}", "topic": f"Topic {i}", "status": "completed"} for i in range(min(limit, 3))]
-    return {"user_id": user_id, "generations": generations}
+    return response
 
 @router.get("/health")
 async def health_check():
-    """Simple health check endpoint"""
-    return {"status": "healthy", "service": "video-generation-api", "database": "firebase"} 
+    return {"status": "ok"} 
+
+@router.post("/enhance-prompt")
+async def enhance_prompt(request: dict):
+    """
+    Enhance a story prompt using AI
+    """
+    try:
+        description = request.get("description", "")
+        language = request.get("language", "en-US") # Get language from request
+        if not description.strip():
+            raise HTTPException(status_code=400, detail="Description is required")
+        
+        client = AzureOpenAI(
+            azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+            api_key=settings.AZURE_OPENAI_API_KEY,
+            api_version="2024-02-01"
+        )
+        
+        enhance_prompt = f"""
+You are a creative writing assistant. Take the following story idea and enhance it to make it more engaging, detailed, and suitable for video generation.
+The original idea is in {language}. Please provide the enhanced version in the SAME language.
+
+Original idea: "{description}"
+
+Please enhance this idea by:
+1. Adding more vivid details and atmosphere
+2. Developing characters and their motivations
+3. Creating a clear narrative arc with beginning, middle, and end
+4. Adding emotional depth and conflict
+5. Making it more cinematic and visual
+
+Return only the enhanced story description, in {language}, nothing else. Keep it under 500 words but make it rich and engaging.
+"""
+        
+        response = client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[{"role": "user", "content": enhance_prompt}],
+            temperature=0.8,
+            max_tokens=800
+        )
+        
+        enhanced_description = response.choices[0].message.content.strip()
+        
+        return {"enhanced_description": enhanced_description}
+        
+    except Exception as e:
+        logger.error(f"Failed to enhance prompt: {e}")
+        raise HTTPException(status_code=500, detail="Failed to enhance prompt") 

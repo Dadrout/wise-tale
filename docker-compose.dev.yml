@@ -6,56 +6,73 @@ services:
     build:
       context: ./wisetale-api
       target: dev  # Use dev stage with hot reload
-      cache_from:
-        - wisetale-backend:dev
-        - wisetale-backend:latest
-      args:
-        BUILDKIT_INLINE_CACHE: 1
     image: wisetale-backend:dev  # Tag for better cache reuse
     container_name: wisetale-backend-dev
+    command: sh -c ". .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
       - ./wisetale-api/.env
     ports:
       - "8000:8000"
     volumes:
-      # Mount only the app directory, not the entire project
+      # Mount the application code
       - ./wisetale-api/app:/app/app
+      # Mount the firebase credentials
+      - ./wisetale-api/time-capsule-d5a66-c542dacf194a.json:/app/time-capsule-d5a66-c542dacf194a.json:ro
       # Preserve the virtual environment from the build
       - backend_venv:/app/.venv
       # Mount specific config files for hot reload
       - ./wisetale-api/pyproject.toml:/app/pyproject.toml:ro
-      # Exclude cache directories to avoid conflicts
-      - /app/__pycache__
-      - /app/.pytest_cache
     environment:
-      - REDIS_URL=redis://localhost:6379
       - VIRTUAL_ENV=/app/.venv
       - PATH=/app/.venv/bin:$PATH
-      - DOCKER_BUILDKIT=1  # Enable BuildKit
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: wisetale-redis-dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ./wisetale-api
+    image: wisetale-backend:dev
+    container_name: wisetale-celery-worker-dev
+    command: sh -c ". .venv/bin/activate && celery -A worker.celery_app worker -l info"
+    env_file:
+      - ./wisetale-api/.env
+    volumes:
+      - ./wisetale-api/app:/app/app
+      - ./wisetale-api/time-capsule-d5a66-c542dacf194a.json:/app/time-capsule-d5a66-c542dacf194a.json:ro
+      - backend_venv:/app/.venv
+    environment:
+      - VIRTUAL_ENV=/app/.venv
+      - PATH=/app/.venv/bin:$PATH
+    depends_on:
+      - backend
+      - redis
 
   frontend:
     build:
       context: ./wisetale-app
       target: dev  # Use dev stage
-      cache_from:
-        - wisetale-frontend:dev
-        - wisetale-frontend:latest
-      args:
-        BUILDKIT_INLINE_CACHE: 1
     image: wisetale-frontend:dev  # Tag for better cache reuse
     container_name: wisetale-frontend-dev
     ports:
       - "3001:3001"
     volumes:
       - ./wisetale-app:/app
-      - frontend_node_modules:/app/node_modules  # Cache node_modules
-      # Exclude build artifacts
-      - /app/.next
-    environment:
-      - DOCKER_BUILDKIT=1  # Enable BuildKit
+      # This anonymous volume prevents the local mount from overwriting
+      # the node_modules directory created during the image build.
+      - /app/node_modules
+    environment: []
 
 volumes:
   backend_venv:
     driver: local
-  frontend_node_modules:
+  redis-data:
     driver: local 

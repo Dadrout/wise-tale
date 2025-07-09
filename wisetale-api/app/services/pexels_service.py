@@ -7,24 +7,25 @@ import json
 from typing import List, Dict, Optional
 import hashlib
 import re
+from app.core.config import settings
 
 class PexelsService:
+    """
+    Pexels API Service for finding fallback images.
+    """
     def __init__(self):
-        self.api_key = os.getenv("PEXELS_API_KEY", "demo_key")  # Используем demo для тестирования
         self.base_url = "https://api.pexels.com/v1"
-        self.redis = None  # Temporarily disable Redis for simplicity
-        
-        if not self.api_key or self.api_key == "demo_key":
-            print("⚠️  Warning: Using Pexels without API key (limited requests)")
-    
-    def _get_headers(self) -> Dict[str, str]:
+        self.api_key = settings.PEXELS_API_KEY
         if not self.api_key:
-            raise ValueError("PEXELS_API_KEY is not set")
+            print("⚠️ PEXELS_API_KEY not found. Pexels API will not be available.")
+
+    def _get_headers(self):
+        if not self.api_key:
+            return {}
         return {
-            "Authorization": self.api_key,
-            "User-Agent": "WiseTale-VideoGenerator/1.0"
+            "Authorization": self.api_key
         }
-    
+
     def extract_keywords_from_story(self, story_text: str, subject: str) -> List[str]:
         """
         Извлекает ключевые слова и фразы из сгенерированной истории
@@ -123,18 +124,6 @@ class PexelsService:
         Returns:
             List of image data dictionaries
         """
-        # Check cache first (if Redis available)
-        cache_key = f"pexels_search:{hashlib.md5(f'{query}:{per_page}:{orientation}'.encode()).hexdigest()}"
-        cached = None
-        if self.redis:
-            try:
-                cached = self.redis.get(cache_key)
-            except Exception:
-                pass
-        
-        if cached:
-            return json.loads(cached)
-        
         params = {
             "query": query,
             "per_page": min(per_page, 80),  # Pexels max is 80
@@ -169,12 +158,6 @@ class PexelsService:
                     "height": photo["height"]
                 })
             
-            # Cache for 6 hours (if Redis available)
-            if self.redis:
-                try:
-                    self.redis.set(cache_key, json.dumps(processed_images), ex=60*60*6)
-                except Exception:
-                    pass
             return processed_images
             
         except requests.RequestException as e:
@@ -183,17 +166,6 @@ class PexelsService:
     
     async def search_curated_images(self, per_page: int = 10) -> List[Dict]:
         """Get curated photos from Pexels"""
-        cache_key = f"pexels_curated:{per_page}"
-        cached = None
-        if self.redis:
-            try:
-                cached = self.redis.get(cache_key)
-            except Exception:
-                pass
-        
-        if cached:
-            return json.loads(cached)
-        
         params = {"per_page": min(per_page, 80)}
         
         try:
@@ -222,12 +194,6 @@ class PexelsService:
                     "height": photo["height"]
                 })
             
-            # Cache for 2 hours (if Redis available)
-            if self.redis:
-                try:
-                    self.redis.set(cache_key, json.dumps(processed_images), ex=60*60*2)
-                except Exception:
-                    pass
             return processed_images
             
         except requests.RequestException as e:
