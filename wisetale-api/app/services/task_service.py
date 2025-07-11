@@ -167,52 +167,52 @@ class TaskService:
             except Exception as e:
                 logger.warning(f"Failed to fail task in Redis: {e}")
     
-    def _generate_video_sync(self, subject: str, topic: str, level: str, voice: str, language: str, user_id: Optional[str], task_id: str) -> Dict[str, Any]:
-        """Synchronous video generation for background tasks"""
-        # Import here to avoid circular imports
-        import asyncio
-        from ..api.v1.generate import VideoGenerationPipeline
+    # def _generate_video_sync(self, subject: str, topic: str, level: str, voice: str, language: str, user_id: Optional[str], task_id: str) -> Dict[str, Any]:
+    #     """Synchronous video generation for background tasks"""
+    #     # Import here to avoid circular imports
+    #     import asyncio
+    #     from ..api.v1.generate import VideoGenerationPipeline
         
-        try:
-            # Update progress
-            asyncio.run(self.update_task_progress(task_id, 10, "Generating story script..."))
+    #     try:
+    #         # Update progress
+    #         asyncio.run(self.update_task_progress(task_id, 10, "Generating story script..."))
             
-            # Create pipeline
-            pipeline = VideoGenerationPipeline()
+    #         # Create pipeline
+    #         # pipeline = VideoGenerationPipeline()
             
-            # Generate story
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+    #         # Generate story
+    #         loop = asyncio.new_event_loop()
+    #         asyncio.set_event_loop(loop)
             
-            story = loop.run_until_complete(pipeline.generate_story_text(subject, topic, language))
-            asyncio.run(self.update_task_progress(task_id, 30, "Story generated, creating audio..."))
+    #         story = loop.run_until_complete(pipeline.generate_story_text(subject, topic, language))
+    #         asyncio.run(self.update_task_progress(task_id, 30, "Story generated, creating audio..."))
             
-            # Generate audio with voice and language parameter
-            audio_url, audio_duration = loop.run_until_complete(pipeline.generate_audio_from_text(story, voice, language))
-            asyncio.run(self.update_task_progress(task_id, 60, "Audio generated, searching for images..."))
+    #         # Generate audio with voice and language parameter
+    #         audio_url, audio_duration = loop.run_until_complete(pipeline.generate_audio_from_text(story, voice, language))
+    #         asyncio.run(self.update_task_progress(task_id, 60, "Audio generated, searching for images..."))
             
-            # Generate AI images
-            images = loop.run_until_complete(pipeline.generate_images_ai(topic, subject, story, count=1, language=language))
-            asyncio.run(self.update_task_progress(task_id, 80, "Images found, creating video..."))
+    #         # Generate AI images
+    #         images = loop.run_until_complete(pipeline.generate_images_ai(topic, subject, story, count=1, language=language))
+    #         asyncio.run(self.update_task_progress(task_id, 80, "Images found, creating video..."))
             
-            # Create video
-            video_url = loop.run_until_complete(pipeline.create_video_slideshow(audio_url, audio_duration, images, story))
-            asyncio.run(self.update_task_progress(task_id, 100, "Video generation completed!"))
+    #         # Create video
+    #         video_url = loop.run_until_complete(pipeline.create_video_slideshow(audio_url, audio_duration, images, story))
+    #         asyncio.run(self.update_task_progress(task_id, 100, "Video generation completed!"))
             
-            loop.close()
+    #         loop.close()
             
-            # Return result
-            return {
-                "video_url": video_url,
-                "audio_url": audio_url,
-                "script": story,
-                "duration": audio_duration,
-                "images_used": images
-            }
+    #         # Return result
+    #         return {
+    #             "video_url": video_url,
+    #             "audio_url": audio_url,
+    #             "script": story,
+    #             "duration": audio_duration,
+    #             "images_used": images
+    #         }
             
-        except Exception as e:
-            logger.error(f"Video generation failed: {e}")
-            raise
+    #     except Exception as e:
+    #         logger.error(f"Video generation failed: {e}")
+    #         raise
     
     def _start_background_task(self, task_id: str, task_data: TaskCreate):
         """Start background video generation"""
@@ -224,18 +224,18 @@ class TaskService:
                 ))
                 
                 # Generate video (this is the slow part)
-                result = self._generate_video_sync(
-                    subject=task_data.subject,
-                    topic=task_data.topic,
-                    level=task_data.level,
-                    voice=task_data.voice,
-                    language=task_data.language,
-                    user_id=task_data.user_id,
-                    task_id=task_id
-                )
+                # result = self._generate_video_sync(
+                #     subject=task_data.subject,
+                #     topic=task_data.topic,
+                #     level=task_data.level,
+                #     voice=task_data.voice,
+                #     language=task_data.language,
+                #     user_id=task_data.user_id,
+                #     task_id=task_id
+                # )
                 
                 # Complete task
-                asyncio.run(self.complete_task(task_id, result))
+                # asyncio.run(self.complete_task(task_id, result))
                 
             except Exception as e:
                 logger.error(f"Task {task_id} failed: {e}")

@@ -27,15 +27,21 @@ services:
       - PATH=/app/.venv/bin:$PATH
     depends_on:
       - redis
+    networks:
+      - wisetale_net
 
   redis:
     image: redis:7.2-alpine
     container_name: wisetale-redis-dev
     ports:
       - "6380:6379"
-    volumes:
-      - redis-data:/data
+    # volumes:
+    #   - redis-data:/data
     restart: unless-stopped
+    healthcheck:
+      disable: true
+    networks:
+      - wisetale_net
 
   celery_worker:
     build:
@@ -55,6 +61,8 @@ services:
     depends_on:
       - backend
       - redis
+    networks:
+      - wisetale_net
 
   frontend:
     build:
@@ -64,15 +72,16 @@ services:
     container_name: wisetale-frontend-dev
     ports:
       - "3001:3001"
-    volumes:
-      - ./wisetale-app:/app
-      # This anonymous volume prevents the local mount from overwriting
-      # the node_modules directory created during the image build.
-      - /app/node_modules
     environment: []
+    networks:
+      - wisetale_net
 
 volumes:
   backend_venv:
     driver: local
   redis-data:
-    driver: local 
+    driver: local
+
+networks:
+  wisetale_net:
+    driver: bridge 

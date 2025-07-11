@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply scroll-smooth;
+  }
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -171,10 +174,10 @@
     }
   }
 
-  /* Smooth theme transitions */
+  /* Limit transitions to color properties only to avoid layout reflow */
   * {
-    transition-property: background-color, border-color, color, fill, stroke;
+    transition-property: background-color, border-color, color;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 200ms;
+    transition-duration: 150ms;
   }
 }

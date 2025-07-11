@@ -4,20 +4,16 @@
 # Start from a Node.js base image
 FROM node:20-alpine AS base
 
-# Install pnpm globally
-RUN npm install -g pnpm
-
-
 # --- Deps Stage ---
 # Install dependencies in a separate stage to leverage Docker's caching.
 FROM base AS deps
 WORKDIR /app
 
 # Copy dependency definition files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN pnpm install
+RUN npm ci
 
 
 # --- Development Stage ---
@@ -25,13 +21,17 @@ RUN pnpm install
 FROM base AS dev
 WORKDIR /app
 
-# Copy installed dependencies from the 'deps' stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy dependency definition files
+COPY package.json package-lock.json ./
+
+# Install dependencies directly in the dev stage for reliability
+RUN npm install
+
 # Copy the rest of the app's source code
 COPY . .
 
 # Run the Next.js development server
-CMD ["pnpm", "dev"]
+CMD ["npm", "run", "dev"]
 
 
 # --- Production Stage ---
@@ -44,7 +44,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the Next.js application
-RUN pnpm build
+RUN npm run build
 
 
 # --- Final Production Stage ---
@@ -59,4 +59,4 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
 # Start the Next.js production server
-CMD ["pnpm", "start"] 
+CMD ["npm", "start"] 

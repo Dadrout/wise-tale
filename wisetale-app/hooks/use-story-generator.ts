@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useCallback } from 'react'
+import { useAuth } from './use-auth'
 
-const API_URL =
-  process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
-    ? `https://api.wisetale.io` // Replace with your actual production API
-    : '/api/simple-proxy'
+const API_URL = 'http://localhost:8000'
 
 interface GenerateParams {
   subject: string
@@ -29,12 +27,19 @@ export const useStoryGenerator = () => {
   const [status, setStatus] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<GenerationResult | null>(null)
+  const { getToken } = useAuth()
 
   const pollTask = async (taskId: string): Promise<GenerationResult> => {
     return new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
         try {
-          const res = await fetch(`${API_URL}/api/v1/tasks/${taskId}/status`)
+          const token = await getToken()
+          const headers: HeadersInit = { 'Content-Type': 'application/json' }
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+          }
+
+          const res = await fetch(`${API_URL}/api/v1/tasks/${taskId}`, { headers })
           if (!res.ok) {
             // Stop polling on server error
             clearInterval(interval)
@@ -45,26 +50,22 @@ export const useStoryGenerator = () => {
           setProgress(data.progress || 0)
           setStatus(data.message || 'Processing...')
 
-          if (data.status === 'completed') {
+          if (data.status === 'SUCCESS') {
             clearInterval(interval)
-            const resultRes = await fetch(`${API_URL}/api/v1/tasks/${taskId}/result`)
-            const resultData = await resultRes.json()
             
-            // Reconstruct URLs to use the proxy
-            const videoId = resultData.video_url?.split('/').pop()
-            const audioId = resultData.audio_url?.split('/').pop()
-            
+            const fullVideoUrl = data.result?.video_url ? `${API_URL}/static/${data.result.video_url}` : undefined;
+
             resolve({
               id: taskId,
-              video_url: videoId ? `/api/simple-proxy/videos/${videoId}` : undefined,
-              audio_url: audioId ? `/api/simple-proxy/audio/${audioId}` : undefined,
-              transcript: resultData.script,
-              images_used: resultData.images_used || [],
+              video_url: fullVideoUrl,
+              audio_url: data.result?.audio_url,
+              transcript: data.result?.script,
+              images_used: data.result?.images_used || [],
             })
 
-          } else if (data.status === 'failed') {
+          } else if (data.status === 'FAILURE') {
             clearInterval(interval)
-            const errorMessage = data.error || data.message || 'Video generation failed.'
+            const errorMessage = data.error || data.info || 'Video generation failed.'
             reject(new Error(errorMessage))
           }
         } catch (e: any) {
@@ -85,13 +86,24 @@ export const useStoryGenerator = () => {
     setResult(null)
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/tasks/generate`, {
+      const token = await getToken()
+      if (!token) {
+        throw new Error("Not authenticated")
+      }
+
+      const response = await fetch(`${API_URL}/api/v1/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ ...params, level: 'beginner' }),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication failed. Please log in again.")
+        }
         const errorData = await response.json()
         
         // Handle FastAPI validation errors (422)

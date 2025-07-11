@@ -1,63 +1,78 @@
 "use client"
 
-import { useEffect, useRef, type ReactNode } from "react"
+import type React from "react"
+
+import { useEffect, useRef, useState } from "react"
 
 interface ScrollRevealProps {
-  children: ReactNode
-  direction?: "up" | "down" | "left" | "right"
-  delay?: number
+  children: React.ReactNode
   className?: string
+  delay?: number
+  direction?: "up" | "down" | "left" | "right" | "fade"
+  duration?: number
+  threshold?: number
 }
 
-export function ScrollReveal({ children, direction = "up", delay = 0, className = "" }: ScrollRevealProps) {
-  const elementRef = useRef<HTMLDivElement>(null)
+export function ScrollReveal({
+  children,
+  className = "",
+  delay = 0,
+  direction = "up",
+  duration = 600,
+  threshold = 0.1,
+}: ScrollRevealProps) {
+  const [isVisible, setIsVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const element = elementRef.current
-    if (!element) return
-
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setTimeout(() => {
-              entry.target.classList.add("animate-in")
-            }, delay)
-          }
-        })
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            setIsVisible(true)
+          }, delay)
+        }
       },
-      { threshold: 0.1 },
+      { threshold },
     )
 
-    observer.observe(element)
-
-    return () => observer.disconnect()
-  }, [delay])
-
-  const getInitialTransform = () => {
-    switch (direction) {
-      case "up":
-        return "translate-y-8"
-      case "down":
-        return "-translate-y-8"
-      case "left":
-        return "translate-x-8"
-      case "right":
-        return "-translate-x-8"
-      default:
-        return "translate-y-8"
+    if (ref.current) {
+      observer.observe(ref.current)
     }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current)
+      }
+    }
+  }, [delay, threshold])
+
+  const getAnimationClass = () => {
+    const baseClass = "transition-all ease-out"
+    const durationClass = `duration-${duration}`
+
+    if (!isVisible) {
+      switch (direction) {
+        case "up":
+          return `${baseClass} ${durationClass} opacity-0 translate-y-8`
+        case "down":
+          return `${baseClass} ${durationClass} opacity-0 -translate-y-8`
+        case "left":
+          return `${baseClass} ${durationClass} opacity-0 translate-x-8`
+        case "right":
+          return `${baseClass} ${durationClass} opacity-0 -translate-x-8`
+        case "fade":
+          return `${baseClass} ${durationClass} opacity-0`
+        default:
+          return `${baseClass} ${durationClass} opacity-0 translate-y-8`
+      }
+    }
+
+    return `${baseClass} ${durationClass} opacity-100 translate-x-0 translate-y-0`
   }
 
   return (
-    <div
-      ref={elementRef}
-      className={`opacity-0 ${getInitialTransform()} transition-all duration-700 ${className}`}
-      style={{
-        transitionDelay: `${delay}ms`,
-        willChange: "transform, opacity",
-      }}
-    >
+    <div ref={ref} className={`${getAnimationClass()} ${className}`}>
       {children}
     </div>
   )

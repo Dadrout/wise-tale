@@ -6,16 +6,20 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
+  getToken: () => Promise<string | null>
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  signInWithGoogle: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -65,6 +69,29 @@ export const useAuthState = () => {
     }
   }
 
+  const getToken = async (): Promise<string | null> => {
+    if (!auth.currentUser) return null
+    try {
+      return await auth.currentUser.getIdToken()
+    } catch (error) {
+      console.error("Error getting auth token:", error)
+      return null
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    setLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(auth, provider)
+    } catch (error) {
+      console.error('Google sign-in error:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const logout = async () => {
     try {
       await signOut(auth)
@@ -74,5 +101,5 @@ export const useAuthState = () => {
     }
   }
 
-  return { user, loading, signIn, signUp, logout }
+  return { user, loading, signIn, signUp, logout, getToken, signInWithGoogle }
 } 

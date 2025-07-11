@@ -6,6 +6,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt \
     apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    libass9 libfreetype6 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for faster dependency management

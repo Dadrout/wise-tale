@@ -1,140 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://wisetale-backend-dev:8000'
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { path: string[] } }
-) {
-  const path = params.path.join('/')
-  const url = `${BACKEND_URL}/${path}`
+async function proxyRequest(request: NextRequest, path: string) {
+  const url = `${BACKEND_URL}/${path}`;
+  console.log(`[Proxy] ---> ${request.method} ${url}`);
 
   try {
-    const body = await request.text()
-    
+    const headers = new Headers(request.headers);
+    // The backend URL is internal, so we can remove the origin header
+    headers.delete('origin');
+
     const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body,
-    })
-
-    const data = await response.text()
-
-    return new NextResponse(data, {
+      method: request.method,
+      headers: headers,
+      body: request.body,
+      // @ts-ignore
+      duplex: 'half',
+    });
+    
+    console.log(`[Proxy] <--- ${response.status} ${response.statusText} FROM ${url}`);
+    
+    // Re-create headers for the response to the client
+    const responseHeaders = new Headers(response.headers);
+    // Add CORS headers to allow the client to access the response
+    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    
+    return new NextResponse(response.body, {
       status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    })
-  } catch (error) {
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error: any) {
+    console.error(`[Proxy] Error fetching ${url}:`, error);
     return NextResponse.json(
-      { error: 'Connection failed' },
-      { status: 500 }
-    )
+      {
+        error: 'Proxy failed to connect to the backend service.',
+        details: error.message,
+      },
+      { status: 502 }
+    );
   }
 }
 
-export async function GET(
+async function handler(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  const path = params.path.join('/')
-  const searchParams = request.nextUrl.searchParams.toString()
-  const url = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ''}`
-
-  try {
-    // Forward Range header for video seeking
-    const headers: HeadersInit = {
-      'method': 'GET',
-    }
-    
-    const rangeHeader = request.headers.get('Range')
-    if (rangeHeader) {
-      headers['Range'] = rangeHeader
-    }
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-    })
-
-    // Handle different content types
-    const contentType = response.headers.get('content-type') || 'application/octet-stream'
-    
-    // For binary files (videos, audio, images), stream the response
-    if (contentType.startsWith('video/') || contentType.startsWith('audio/') || contentType.startsWith('image/')) {
-      // For video files, we need to stream properly to support Range requests
-      if (contentType.startsWith('video/')) {
-        const responseHeaders: HeadersInit = {
-          'Content-Type': contentType,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Range',
-        }
-        
-        // Forward important headers for video streaming
-        const contentLength = response.headers.get('content-length')
-        const contentRange = response.headers.get('content-range')
-        const acceptRanges = response.headers.get('accept-ranges')
-        
-        if (contentLength) responseHeaders['Content-Length'] = contentLength
-        if (contentRange) responseHeaders['Content-Range'] = contentRange
-        if (acceptRanges) responseHeaders['Accept-Ranges'] = acceptRanges
-        
-        // Stream the video response
-        return new NextResponse(response.body, {
-          status: response.status,
-          headers: responseHeaders,
-        })
-      } else {
-        // For other binary files, use buffer as before
-        const buffer = await response.arrayBuffer()
-        
-        return new NextResponse(buffer, {
-          status: response.status,
-          headers: {
-            'Content-Type': contentType,
-            'Content-Length': response.headers.get('content-length') || '',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          },
-        })
-      }
-    } else {
-      // For text/JSON responses
-      const data = await response.text()
-      
-      return new NextResponse(data, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        },
-      })
-    }
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Connection failed' },
-      { status: 500 }
-    )
-  }
+  const path = params.path.join('/');
+  return proxyRequest(request, path);
 }
+
+export { handler as GET, handler as POST, handler as PUT, handler as DELETE };
 
 export async function OPTIONS() {
   return new NextResponse(null, {
-    status: 200,
+    status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Range',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
-  })
+  });
 } 

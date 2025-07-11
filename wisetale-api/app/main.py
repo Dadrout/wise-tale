@@ -2,7 +2,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -17,7 +17,7 @@ load_dotenv()
 from app.celery_utils import celery_app
 
 # Import active routers
-from app.api.v1 import generate, tasks
+from app.api.v1 import generate
 from app.services.redis_service import get_redis_client
 
 # Инициализируем сервисы
@@ -30,16 +30,10 @@ app = FastAPI(
 )
 
 # CORS settings
+# For development, allow all origins to avoid issues with Docker networking.
+# For production, this should be a specific list of domains.
 environment = os.getenv("ENVIRONMENT", "development")
-if environment == "production":
-    origins = ["*"]  # TODO: Replace with specific domains after deployment
-else:
-    # Development - allow local origins
-    origins = [
-        "http://localhost:3000",  # Landing page
-        "http://localhost:3001",  # Main app
-        "http://localhost:8000",  # API docs
-    ]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,42 +43,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create directories if they don't exist
-videos_dir = Path("generated_videos")
-videos_dir.mkdir(exist_ok=True)
+# Create static directory if it doesn't exist for serving generated files
+static_dir = Path("static")
+static_dir.mkdir(exist_ok=True)
 
-audio_dir = Path("generated_audio")
-audio_dir.mkdir(exist_ok=True)
 
-images_dir = Path("generated_images")
-images_dir.mkdir(exist_ok=True)
+# Mount the static directory to serve generated files
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# We will handle video serving manually to support range requests
-# app.mount("/videos", StaticFiles(directory=str(videos_dir)), name="videos")
-app.mount("/audio", StaticFiles(directory=str(audio_dir)), name="audio")
-app.mount("/images", StaticFiles(directory=str(images_dir)), name="images")
-
-# Custom endpoint for serving videos with range request support
-@app.get("/videos/{video_name}")
-async def serve_video(video_name: str, request: Request):
-    video_path = videos_dir / video_name
+# Custom endpoint for serving videos with range request support (optional, can be simplified)
+@app.get("/static/{user_id}/{video_name}")
+async def serve_video_dynamic(user_id: str, video_name: str, request: Request):
+    video_path = static_dir / user_id / video_name
     if not video_path.is_file():
-        return {"error": "Video not found"}, 404
+        return JSONResponse(content={"error": "Video not found"}, status_code=404)
     
-    # Get file size
     file_size = video_path.stat().st_size
-    
-    # Check if Range header is present
     range_header = request.headers.get('Range')
     
     if range_header:
-        # Parse range header
         range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
         if range_match:
             start = int(range_match.group(1))
             end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
             
-            # Ensure end doesn't exceed file size
             end = min(end, file_size - 1)
             content_length = end - start + 1
             
@@ -112,8 +94,7 @@ async def serve_video(video_name: str, request: Request):
                 status_code=206,
                 headers=headers
             )
-    
-    # No range header, return full file
+            
     return FileResponse(
         video_path, 
         media_type="video/mp4", 
@@ -123,7 +104,6 @@ async def serve_video(video_name: str, request: Request):
 
 # Include active routers
 app.include_router(generate.router, prefix="/api/v1")
-app.include_router(tasks.router, prefix="/api/v1")
 
 @app.get("/")
 async def root():

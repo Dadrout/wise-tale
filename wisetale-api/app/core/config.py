@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     Application Settings using Pydantic BaseSettings.
     Loads variables from .env file and environment.
     """
+    # Environment and API settings
+    ENVIRONMENT: str = "development"
+    API_PORT: int = 8000
+    API_HOST: str = "0.0.0.0"
+    LOG_LEVEL: str = "INFO"
+    DEBUG: bool = False
+    
     # Stability AI API for image generation
     STABILITY_API_KEY: Optional[str] = None
 
@@ -39,10 +46,16 @@ class Settings(BaseSettings):
     DEFAULT_PERSONA: str = "narrator"
     DEFAULT_LANGUAGE: str = "en"
     TARGET_LANGUAGE: str = "en"
-    RUNWARE_API_KEY: Optional[str] = None
+    RUNWARE_API_KEY: str = ""
+
+    # Celery settings
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
 
     class Config:
         case_sensitive = True
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
 
 # Create a single instance of the settings
 settings = Settings() 

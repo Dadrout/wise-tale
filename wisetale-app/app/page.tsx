@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ScrollReveal } from "@/components/scroll-reveal"
+import { MotionReveal } from "@/components/MotionReveal"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { WiseTaleLogo } from "@/components/wisetale-logo"
-import { EnhancedVideoPlayer } from "@/components/enhanced-video-player"
-import AuthModal from "@/components/auth-modal"
+import Link from "next/link"
+import { FloatingElements } from "@/components/floating-elements"
 import LanguageSelector from "@/components/language-selector"
 import { useLanguage } from "@/hooks/use-language"
 import { useAuth } from "@/hooks/use-auth"
@@ -25,7 +25,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 export default function WiseTaleApp() {
   const { t } = useLanguage()
   const { user, logout } = useAuth()
-  const [authOpen, setAuthOpen] = useState(false)
   
   // Form state
   const [subject, setSubject] = useState("")
@@ -108,7 +107,7 @@ export default function WiseTaleApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-sky-50 to-purple-50 dark:from-gray-900 dark:via-black dark:to-purple-900/40 text-gray-900 dark:text-gray-100 font-sans">
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 font-sans">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/70 dark:bg-black/50 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -133,27 +132,28 @@ export default function WiseTaleApp() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  onClick={() => setAuthOpen(true)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg px-6 py-2 shadow-md hover:shadow-lg transition-all"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  {t.signIn}
-                </Button>
+                <Link href="/login">
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg px-6 py-2 shadow-md hover:shadow-lg transition-all"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    {t.signIn}
+                  </Button>
+                </Link>
               )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+      {/* Animated background icons */}
+      <FloatingElements />
 
       {/* Main Content */}
       <div className="py-12 sm:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <ScrollReveal direction="down">
+          <MotionReveal>
             <div className="text-center mb-12">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-sky-500 to-teal-500 tracking-tight">
                 {t.title}
@@ -162,11 +162,11 @@ export default function WiseTaleApp() {
                 {t.subtitle}
               </p>
             </div>
-          </ScrollReveal>
+          </MotionReveal>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Input Section */}
-            <ScrollReveal direction="left">
+            <MotionReveal>
               <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-purple-100 dark:border-purple-800 rounded-2xl shadow-lg">
                 <CardHeader className="pb-6">
                   <CardTitle className="flex items-center gap-2 text-2xl text-gray-800 dark:text-gray-100">
@@ -194,13 +194,13 @@ export default function WiseTaleApp() {
                         <SelectItem value="literature" disabled>
                           <div className="flex items-center gap-3 opacity-50">
                             <BookOpen className="w-4 h-4 text-gray-400" />
-                            Literature (Coming Soon)
+                            {t.literature} (Coming Soon)
                           </div>
                         </SelectItem>
-                        <SelectItem value="custom">
-                          <div className="flex items-center gap-3">
-                            <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                            Custom Story
+                        <SelectItem value="custom" disabled>
+                          <div className="flex items-center gap-3 opacity-50">
+                            <Sparkles className="w-4 h-4 text-gray-400" />
+                            {t.customStory} (Coming Soon)
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -212,11 +212,11 @@ export default function WiseTaleApp() {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <Label htmlFor="customTitle" className="text-base font-semibold text-gray-800 dark:text-gray-200">
-                          Story Title
+                          {t.storyTitle}
                         </Label>
                         <Input
                           id="customTitle"
-                          placeholder="Enter your story title..."
+                          placeholder={t.storyTitle}
                           value={topic}
                           onChange={(e) => setTopic(e.target.value)}
                           className="h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 text-base px-4 bg-white dark:bg-gray-800/60"
@@ -224,11 +224,11 @@ export default function WiseTaleApp() {
                       </div>
                       <div className="space-y-3">
                         <Label htmlFor="customDescription" className="text-base font-semibold text-gray-800 dark:text-gray-200">
-                          Story Description
+                          {t.storyDescription}
                         </Label>
                         <textarea
                           id="customDescription"
-                          placeholder="Describe your story idea in detail..."
+                          placeholder={t.storyDescription}
                           value={customDescription}
                           onChange={(e) => setCustomDescription(e.target.value)}
                           className="min-h-[100px] w-full rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 text-base px-4 py-3 bg-white dark:bg-gray-800/60 resize-none"
@@ -243,12 +243,12 @@ export default function WiseTaleApp() {
                         {isEnhancing ? (
                           <div className="flex items-center gap-2">
                             <RefreshCw className="w-4 h-4 animate-spin" />
-                            Enhancing...
+                            {t.generatingStory}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <Sparkles className="w-4 h-4" />
-                            Enhance with AI
+                            {t.enhanceWithAI}
                           </div>
                         )}
                       </Button>
@@ -332,81 +332,79 @@ export default function WiseTaleApp() {
                     ) : (
                       <div className="flex items-center gap-3">
                         <Sparkles className="w-5 h-5" />
-                        {t.generateVideo}
+                        {t.generateStory}
                       </div>
                     )}
                   </Button>
                 </CardContent>
               </Card>
-            </ScrollReveal>
+            </MotionReveal>
 
             {/* Output Section */}
-            <ScrollReveal direction="right">
-              <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-purple-100 dark:border-purple-800 rounded-2xl shadow-lg">
-                <CardHeader className="pb-6">
-                  <CardTitle className="flex items-center gap-2 text-2xl text-gray-800 dark:text-gray-100">
-                    <Play className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    {t.yourStoryVideo}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="relative aspect-video bg-gray-900/50 rounded-lg overflow-hidden border border-purple-200 dark:border-purple-800/60 shadow-inner">
+            <div className="space-y-8">
+              <MotionReveal>
+                <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-2xl text-gray-800 dark:text-gray-100">
+                      <Play className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                      {t.yourStoryVideo}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     {isGenerating ? (
                       <GenerationProgress progress={progress} status={status} />
                     ) : error ? (
-                       <div className="w-full h-full flex items-center justify-center p-4 bg-red-900/20">
-                         <Alert variant="destructive">
-                           <AlertTriangle className="h-4 w-4" />
-                           <AlertTitle>Generation Failed</AlertTitle>
-                           <AlertDescription>{error}</AlertDescription>
-                         </Alert>
-                       </div>
-                    ) : generatedVideo?.video_url ? (
-                      <EnhancedVideoPlayer
-                        videoUrl={generatedVideo.video_url}
-                        posterUrl={generatedVideo.images_used?.[0]}
-                        className="w-full h-full"
-                      />
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Generation Failed</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-black/30 p-4">
-                        {getSubjectIcon(subject || 'history')}
-                        <p className="text-gray-400 mt-4 font-medium">{t.videoPlaceholder}</p>
-                        <p className="text-gray-500 text-sm">{t.videoSubtitle}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {generatedVideo && (
-                    <>
-                      <Separator className="my-6 bg-gray-200 dark:bg-gray-700" />
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-lg flex items-center gap-2">
-                            <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            {t.storyTranscript}
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowTranscript(!showTranscript)}
-                            className="text-purple-600 dark:text-purple-400 hover:text-purple-700"
-                          >
-                            {showTranscript ? t.hide : t.show}
-                          </Button>
-                        </div>
-                        {showTranscript && (
-                          <div className="bg-gradient-to-br from-purple-50 via-sky-50 to-teal-50 dark:from-purple-900/10 dark:via-sky-900/10 dark:to-teal-900/10 rounded-xl p-6 border border-purple-100 dark:border-purple-800">
-                            <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                              {getTranscript()}
-                            </div>
+                      <div className="aspect-video bg-gray-200 dark:bg-gray-800 rounded-xl flex items-center justify-center relative overflow-hidden">
+                        {generatedVideo?.video_url ? (
+                          <video src={generatedVideo.video_url} controls className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-center p-4">
+                            <Play className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto" />
+                            <p className="mt-2 text-sm text-gray-500">{t.videoPlaceholder}</p>
                           </div>
                         )}
                       </div>
-                    </>
+                    )}
+                  </CardContent>
+                </Card>
+              </MotionReveal>
+
+              {generatedVideo?.transcript && (
+                <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-3 text-2xl text-gray-800 dark:text-gray-100">
+                        <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                        {t.transcript}
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowTranscript(!showTranscript)}
+                        className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                      >
+                        {showTranscript ? t.hide : t.show}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  {showTranscript && (
+                    <CardContent>
+                      <div className="bg-gradient-to-br from-purple-50 via-sky-50 to-teal-50 dark:from-purple-900/10 dark:via-sky-900/10 dark:to-teal-900/10 rounded-xl p-6 border border-purple-100 dark:border-purple-800">
+                        <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                          {getTranscript()}
+                        </div>
+                      </div>
+                    </CardContent>
                   )}
-                </CardContent>
-              </Card>
-            </ScrollReveal>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -414,7 +412,7 @@ export default function WiseTaleApp() {
       {/* Footer */}
       <footer className="mt-16 py-8 bg-white/50 dark:bg-black/30 border-t border-gray-200 dark:border-gray-800">
         <div className="container mx-auto text-center text-gray-500 dark:text-gray-400 text-sm">
-          &copy; {new Date().getFullYear()} WiseTale. {t.allRightsReserved}.
+          &copy; {new Date().getFullYear()} WiseTale. {t.allRightsReserved}
         </div>
       </footer>
     </div>

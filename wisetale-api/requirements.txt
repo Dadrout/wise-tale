@@ -159,27 +159,27 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.11.7
+pydantic==2.7.1
     # via
     #   wisetale-api (wisetale-api/pyproject.toml)
     #   fastapi
     #   openai
     #   pydantic-settings
-pydantic-core==2.33.2
+pydantic-core==2.18.2
     # via pydantic
 pydantic-settings==2.10.1
     # via wisetale-api (wisetale-api/pyproject.toml)
-pyjwt==2.10.1
+pyjwt==2.8.0
     # via firebase-admin
 pyparsing==3.2.3
     # via httplib2
 python-dateutil==2.9.0.post0
     # via celery
-python-dotenv==1.1.1
+python-dotenv==1.0.1
     # via
     #   wisetale-api (wisetale-api/pyproject.toml)
     #   pydantic-settings
-redis==5.0.1
+redis==5.0.4
     # via
     #   wisetale-api (wisetale-api/pyproject.toml)
     #   celery
@@ -225,7 +225,7 @@ uritemplate==4.2.0
     # via google-api-python-client
 urllib3==2.5.0
     # via requests
-uvicorn==0.27.1
+uvicorn==0.29.0
     # via wisetale-api (wisetale-api/pyproject.toml)
 vine==5.1.0
     # via
@@ -249,3 +249,5 @@ firebase-admin
 stability-sdk
 pexels-api
 httpx
+aiohttp==3.9.5
+aiofiles

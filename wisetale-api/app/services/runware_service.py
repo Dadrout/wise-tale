@@ -79,11 +79,15 @@ class RunwareService:
         """
         logger.info(f"🎨 Generating {len(prompts)} images with Runware in a single batch...")
         
-        tasks_payload = []
-        for prompt in prompts:
+        # Build payload and map UUID → original index to restore order later
+        tasks_payload: list[dict] = []
+        uuid_to_index: dict[str, int] = {}
+        for idx, prompt in enumerate(prompts):
+            task_uuid = str(uuid4())
+            uuid_to_index[task_uuid] = idx
             tasks_payload.append({
                 "taskType": "imageInference",
-                "taskUUID": str(uuid4()),
+                "taskUUID": task_uuid,
                 "model": "runware:100@1",
                 "steps": 4,
                 "positivePrompt": prompt,
@@ -102,9 +106,20 @@ class RunwareService:
                 return []
 
             results = response_data.get("data", [])
-            successful_images = [item["imageURL"] for item in results if item.get("imageURL")]
-            
-            logger.info(f"Successfully generated {len(successful_images)} out of {len(prompts)} images with Runware.")
+
+            # Pre-fill list to maintain order
+            ordered_images: list[str | None] = [None] * len(prompts)
+            for item in results:
+                task_uuid = item.get("taskUUID")
+                img_url = item.get("imageURL")
+                if task_uuid in uuid_to_index and img_url:
+                    ordered_images[uuid_to_index[task_uuid]] = img_url
+
+            # Remove Nones but keep relative order of successfully generated images
+            successful_images = [url for url in ordered_images if url]
+
+            logger.info(
+                f"Successfully generated {len(successful_images)} out of {len(prompts)} images with Runware, order preserved.")
             return successful_images
 
         except Exception:
