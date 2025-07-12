@@ -35,7 +35,7 @@ async def verify_api_key(
     
     return api_key
 
-oauth2_scheme = HTTPAuthorizationCredentials(tokenUrl="token") # tokenUrl is not used, but required
+oauth2_scheme = HTTPBearer() # tokenUrl is not used, but required
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     credentials_exception = HTTPException(

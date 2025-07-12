@@ -8,7 +8,7 @@ interface WizetaleLogoProps {
 export function WizetaleLogo({ size = 40, className = "" }: WizetaleLogoProps) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Image src="/wizetale-logo.png" alt="Wizetale Logo" width={size} height={size} className="object-contain" />
+      <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={size} height={size} className="object-contain" />
     </div>
   )
 }

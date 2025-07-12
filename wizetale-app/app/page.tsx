@@ -34,7 +34,7 @@ import { useRouter } from "next/navigation"
 
 export default function WizetaleApp() {
   const { t } = useLanguage()
-  const { user, userProfile, logout } = useAuth()
+  const { user, userProfile, logout, loading } = useAuth()
   const router = useRouter()
   
   // Form state
@@ -63,6 +63,21 @@ export default function WizetaleApp() {
       setGeneratedVideo(result)
     }
   }, [result])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/landing")
+    }
+  }, [user, loading, router])
+
+  if (loading || (!user && typeof window !== 'undefined')) {
+    // Показываем спиннер или заглушку, пока идёт проверка авторизации
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <span className="text-lg text-gray-500">Loading...</span>
+      </div>
+    )
+  }
 
   const handleEnhancePrompt = async () => {
     if (!customDescription.trim()) return
