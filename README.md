@@ -1,6 +1,6 @@
-# WiseTale - Transform Learning into Magical Stories
+# Wizetale - Transform Learning into Magical Stories
 
-WiseTale is an educational platform that transforms complex humanities subjects into AI-generated video stories, making learning fun and engaging for students aged 10-18.
+Wizetale is an educational platform that transforms complex humanities subjects into AI-generated video stories, making learning fun and engaging for students aged 10-18.
 
 ## 🚀 Project Structure
 

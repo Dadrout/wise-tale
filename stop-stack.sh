@@ -1,20 +1,20 @@
 #!/bin/bash
+echo "🛑 Stopping Wizetale Stack..."
 
-echo "🛑 Stopping WiseTale Stack..."
+# Stop on error
+set -e
 
-# Stop Docker services
-echo "📦 Stopping Docker containers..."
-docker-compose down
+# Stop backend
+echo "-> Stopping Backend..."
+cd wizetale-api
+docker compose down
+cd ..
 
-# Stop backend if PID file exists
-if [ -f .backend_pid ]; then
-    BACKEND_PID=$(cat .backend_pid)
-    echo "📡 Stopping Backend API (PID: $BACKEND_PID)..."
-    kill $BACKEND_PID 2>/dev/null
-    rm .backend_pid
-else
-    echo "📡 Stopping any running backend processes..."
-    pkill -f "uvicorn app.main:app"
+# Stop frontend
+echo "-> Stopping Frontend..."
+if [ -f wisetale-app/node_modules/.bin/next ]; then
+    kill $(lsof -t -i:3000) > /dev/null 2>&1 || true
 fi
 
-echo "✅ WiseTale Stack Stopped Successfully!" 
+
+echo "✅ Wizetale Stack Stopped Successfully!" 

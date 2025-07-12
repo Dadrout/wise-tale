@@ -1,32 +1,22 @@
 #!/bin/bash
+echo "🚀 Starting Wizetale Full Stack..."
 
-echo "🚀 Starting WiseTale Full Stack..."
+# Stop on error
+set -e
 
-# Start backend locally
-echo "📡 Starting Backend API (local)..."
-cd wisetale-api
-source .venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
-BACKEND_PID=$!
+# Go to backend and start it in the background
+echo "-> Starting Backend..."
+cd wizetale-api
+docker compose up -d --build
 cd ..
 
-# Start frontend via Docker
-echo "🎨 Starting Frontend (Docker)..."
-docker-compose up frontend -d
+# Go to frontend and start it in the background
+echo "-> Starting Frontend..."
+cd wisetale-app
+npm i
+npm run dev &
+cd ..
 
-echo ""
-echo "✅ WiseTale Stack Started Successfully!"
-echo ""
-echo "🌐 Services available at:"
-echo "   • Backend API:  http://localhost:8000"
-echo "   • Main App:     http://localhost:3001"
-echo ""
-echo "📝 To stop all services:"
-echo "   • Backend: kill $BACKEND_PID"
-echo "   • Docker:  docker-compose down"
-echo ""
-
-# Save backend PID for easy cleanup
-echo $BACKEND_PID > .backend_pid
-
-echo "💡 Use './stop-stack.sh' to stop all services" 
+echo "✅ Wizetale Stack Started Successfully!"
+echo "   - Backend API available at http://localhost:8000"
+echo "   - Frontend App available at http://localhost:3000" 

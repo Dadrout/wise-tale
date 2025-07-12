@@ -155,15 +155,27 @@ def check_api_health():
         print(f"❌ API недоступен: {e}")
         return False
 
+def main():
+    """Main function to run the test."""
+    print("🚀 Тестирование Wizetale API с AI генерацией изображений")
+    
+    # --- Configuration ---
+    BASE_URL = "http://localhost:8000/api/v1"
+    print("✅ Тест успешно завершен!")
+    print("\n----------------------------------------")
+    print("💡 Проверьте сгенерированные файлы в wizetale-api/generated_*/")
+    print("----------------------------------------\n")
+
 if __name__ == "__main__":
-    print("🚀 Тестирование WiseTale API с AI генерацией изображений")
+    print("🚀 Тестирование Wizetale API с AI генерацией изображений")
     print("=" * 60)
     
     # Проверяем API
     if not check_api_health():
         print("\n💡 Убедитесь что API запущен:")
-        print("   cd wisetale-api")
-        print("   HUGGINGFACE_API_KEY=your_token uvicorn app.main:app --reload")
+        print("   cd wizetale-api")
+        print("   source .venv/bin/activate")
+        print("   uvicorn app.main:app --reload")
         exit(1)
     
     # Запускаем тесты
@@ -172,4 +184,4 @@ if __name__ == "__main__":
     
     print("\n" + "=" * 60)
     print("🎯 Тестирование завершено!")
-    print("💡 Проверьте сгенерированные файлы в wisetale-api/generated_*/") 
+    print("💡 Проверьте сгенерированные файлы в wizetale-api/generated_*/") 

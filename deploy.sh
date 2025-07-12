@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# WiseTale Production Deployment Script
+# Wizetale Production Deployment Script
 # This script handles the full deployment process
 
 set -e  # Exit on any error
@@ -52,14 +52,14 @@ backup_deployment() {
     # Backup Redis data if exists
     if docker volume ls | grep -q "redis_data"; then
         log_info "Backing up Redis data..."
-        docker run --rm -v wisetale_redis_data:/data -v "$(pwd)/$BACKUP_DIR":/backup alpine \
+        docker run --rm -v wizetale_redis_data:/data -v "$(pwd)/$BACKUP_DIR":/backup alpine \
             tar czf "/backup/${BACKUP_NAME}_redis.tar.gz" -C /data .
     fi
     
     # Backup environment files
     log_info "Backing up environment files..."
     tar czf "$BACKUP_DIR/${BACKUP_NAME}_env.tar.gz" \
-        wisetale-api/.env* wisetale-app/.env* wisetale-landing/.env* 2>/dev/null || true
+        wizetale-api/.env* wizetale-app/.env* wizetale-landing/.env* 2>/dev/null || true
     
     log_success "Backup created: $BACKUP_NAME"
 }
@@ -70,16 +70,16 @@ check_env_files() {
     
     local missing_files=()
     
-    if [ ! -f "wisetale-api/.env" ]; then
-        missing_files+=("wisetale-api/.env")
+    if [ ! -f "wizetale-api/.env" ]; then
+        missing_files+=("wizetale-api/.env")
     fi
     
-    if [ ! -f "wisetale-app/.env" ]; then
-        missing_files+=("wisetale-app/.env")
+    if [ ! -f "wizetale-app/.env" ]; then
+        missing_files+=("wizetale-app/.env")
     fi
     
-    if [ ! -f "wisetale-landing/.env" ]; then
-        missing_files+=("wisetale-landing/.env")
+    if [ ! -f "wizetale-landing/.env" ]; then
+        missing_files+=("wizetale-landing/.env")
     fi
     
     if [ ${#missing_files[@]} -ne 0 ]; then
@@ -200,7 +200,7 @@ show_status() {
 
 # Main deployment process
 main() {
-    log_info "Starting WiseTale Production Deployment..."
+    log_info "Starting Wizetale Production Deployment..."
     echo ""
     
     # Pre-deployment checks

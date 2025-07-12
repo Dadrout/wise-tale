@@ -4,35 +4,39 @@
 services:
   backend:
     build:
-      context: ./wisetale-api
+      context: ./wizetale-api
+      dockerfile: Dockerfile
       target: dev  # Use dev stage with hot reload
-    image: wisetale-backend:dev  # Tag for better cache reuse
-    container_name: wisetale-backend-dev
+    image: wizetale-backend:dev  # Tag for better cache reuse
+    container_name: wizetale-backend-dev
     command: sh -c ". .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
-      - ./wisetale-api/.env
+      - ./wizetale-api/.env
     ports:
       - "8000:8000"
     volumes:
       # Mount the application code
-      - ./wisetale-api/app:/app/app
+      - ./wizetale-api/app:/app/app
+      # For local dev, mount generated files to inspect them
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
       # Mount the firebase credentials
-      - ./wisetale-api/time-capsule-d5a66-c542dacf194a.json:/app/time-capsule-d5a66-c542dacf194a.json:ro
+      - ./wizetale-api/time-capsule-d5a66-c542dacf194a.json:/app/time-capsule-d5a66-c542dacf194a.json:ro
       # Preserve the virtual environment from the build
       - backend_venv:/app/.venv
       # Mount specific config files for hot reload
-      - ./wisetale-api/pyproject.toml:/app/pyproject.toml:ro
+      - ./wizetale-api/pyproject.toml:/app/pyproject.toml:ro
     environment:
       - VIRTUAL_ENV=/app/.venv
       - PATH=/app/.venv/bin:$PATH
     depends_on:
       - redis
     networks:
-      - wisetale_net
+      - wizetale_net
 
   redis:
     image: redis:7.2-alpine
-    container_name: wisetale-redis-dev
+    container_name: wizetale-redis-dev
     ports:
       - "6380:6379"
     # volumes:
@@ -41,20 +45,23 @@ services:
     healthcheck:
       disable: true
     networks:
-      - wisetale_net
+      - wizetale_net
 
   celery_worker:
     build:
-      context: ./wisetale-api
-    image: wisetale-backend:dev
-    container_name: wisetale-celery-worker-dev
-    command: sh -c ". .venv/bin/activate && celery -A worker.celery_app worker -l info"
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-backend:dev
+    container_name: wizetale-celery-worker-dev
+    command: celery -A worker.celery_app worker --loglevel=info -P gevent -c 4
     env_file:
-      - ./wisetale-api/.env
+      - ./wizetale-api/.env
     volumes:
-      - ./wisetale-api/app:/app/app
-      - ./wisetale-api/time-capsule-d5a66-c542dacf194a.json:/app/time-capsule-d5a66-c542dacf194a.json:ro
-      - backend_venv:/app/.venv
+      - ./wizetale-api/app:/app/app
+      - ./wizetale-api/time-capsule-d5a66-c542dacf194a.json:/app/time-capsule-d5a66-c542dacf194a.json:ro
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+      - ./wizetale-api/generated_audio:/app/generated_audio
     environment:
       - VIRTUAL_ENV=/app/.venv
       - PATH=/app/.venv/bin:$PATH
@@ -62,19 +69,20 @@ services:
       - backend
       - redis
     networks:
-      - wisetale_net
+      - wizetale_net
 
   frontend:
     build:
-      context: ./wisetale-app
+      context: ./wizetale-app
+      dockerfile: Dockerfile
       target: dev  # Use dev stage
-    image: wisetale-frontend:dev  # Tag for better cache reuse
-    container_name: wisetale-frontend-dev
+    image: wizetale-frontend:dev  # Tag for better cache reuse
+    container_name: wizetale-frontend-dev
     ports:
       - "3001:3001"
     environment: []
     networks:
-      - wisetale_net
+      - wizetale_net
 
 volumes:
   backend_venv:
@@ -83,5 +91,5 @@ volumes:
     driver: local
 
 networks:
-  wisetale_net:
+  wizetale_net:
     driver: bridge 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# WiseTale Production Management Script
+# Wizetale Production Management Script
 # Quick commands for managing production deployment
 
 set -e
@@ -32,7 +32,7 @@ log_error() {
 
 # Show help
 show_help() {
-    echo "WiseTale Production Management Commands:"
+    echo "Wizetale Production Management Commands:"
     echo ""
     echo "Usage: $0 [COMMAND]"
     echo ""
@@ -112,13 +112,13 @@ open_shell() {
     
     case $service in
         "api")
-            container_name="wisetale-backend-prod"
+            container_name="wizetale-backend-prod"
             ;;
         "app")
-            container_name="wisetale-frontend-prod"
+            container_name="wizetale-frontend-prod"
             ;;
         "landing")
-            container_name="wisetale-landing-prod"
+            container_name="wizetale-landing-prod"
             ;;
         *)
             log_error "Invalid service: $service"
@@ -158,7 +158,7 @@ cleanup() {
 # Monitor
 monitor() {
     log_info "Monitoring resource usage (press Ctrl+C to stop)..."
-    docker stats wisetale-backend-prod wisetale-frontend-prod wisetale-landing-prod wisetale-redis-prod wisetale-nginx-prod
+    docker stats wizetale-backend-prod wizetale-frontend-prod wizetale-landing-prod wizetale-redis-prod wizetale-nginx-prod
 }
 
 # Health check
