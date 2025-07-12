@@ -64,3 +64,12 @@ next-env.d.ts
 backups/
 test.zip
 *.zip
+node_modules/
+.pnpm-store/
+*.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+generated_audio/
+generated_videos/
