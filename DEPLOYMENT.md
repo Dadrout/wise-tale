@@ -46,9 +46,8 @@ cd wisetale
 
 ```bash
 # Create production environment files
-touch wisetale-api/.env.production
-touch wisetale-app/.env.production
-touch wisetale-landing/.env.production
+touch wizetale-api/.env.production
+touch wizetale-app/.env.production
 ```
 
 Use the examples in `production-env-examples.md` to fill in your values.

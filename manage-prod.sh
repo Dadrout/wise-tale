@@ -118,7 +118,7 @@ open_shell() {
             container_name="wizetale-frontend-prod"
             ;;
         "landing")
-            container_name="wizetale-landing-prod"
+            
             ;;
         *)
             log_error "Invalid service: $service"
@@ -158,7 +158,7 @@ cleanup() {
 # Monitor
 monitor() {
     log_info "Monitoring resource usage (press Ctrl+C to stop)..."
-    docker stats wizetale-backend-prod wizetale-frontend-prod wizetale-landing-prod wizetale-redis-prod wizetale-nginx-prod
+    docker stats wizetale-backend-prod wizetale-frontend-prod wizetale-redis-prod wizetale-nginx-prod
 }
 
 # Health check

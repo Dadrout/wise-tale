@@ -12,7 +12,7 @@ cd ..
 
 # Stop frontend
 echo "-> Stopping Frontend..."
-if [ -f wisetale-app/node_modules/.bin/next ]; then
+if [ -f wizetale-app/node_modules/.bin/next ]; then
     kill $(lsof -t -i:3000) > /dev/null 2>&1 || true
 fi
 

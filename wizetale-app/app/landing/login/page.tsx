@@ -105,7 +105,7 @@ export default function LoginPage() {
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4">
-                        <Image src="/images/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
+                        <Image src="/images/wizetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
                     </div>
                     <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
                     <CardDescription>

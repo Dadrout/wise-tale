@@ -20,9 +20,9 @@ dist/
 /build
 
 # Generated content (audio/video files)
-wisetale-api/generated_audio/
-wisetale-api/generated_videos/
-wisetale-api/cache/
+wizetale-api/generated_audio/
+wizetale-api/generated_videos/
+wizetale-api/cache/
 
 # Logs
 *.log

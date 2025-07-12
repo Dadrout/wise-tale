@@ -5,10 +5,9 @@ Wizetale is an educational platform that transforms complex humanities subjects 
 ## 🚀 Project Structure
 
 ```
-WiseTale/
-├── wisetale-api/          # FastAPI Backend
-├── wisetale-app/          # Next.js Frontend (Main App)
-├── wisetale-landing/      # Next.js Landing Page
+Wizetale/
+├── wizetale-api/          # FastAPI Backend
+├── wizetale-app/          # Next.js Frontend (Main App)
 ├── docker-compose.yml     # Full stack orchestration
 └── README.md
 ```
@@ -37,7 +36,7 @@ WiseTale/
 
 ### 1. Environment Setup
 
-Create `.env` file in `wisetale-api/`:
+Create `.env` file in `wizetale-api/`:
 ```bash
 SUPABASE_URL=your-supabase-url
 SUPABASE_KEY=your-supabase-service-role-key
@@ -102,8 +101,7 @@ docker-compose up -d --build
 
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
-- **Frontend App**: http://localhost:3000
-- **Landing Page**: http://localhost:3001
+- **Frontend App**: http://localhost:3001
 - **Redis**: localhost:6379
 
 ## 📚 API Endpoints
@@ -138,7 +136,7 @@ docker-compose up -d --build
 
 ### Backend Development
 ```bash
-cd wisetale-api
+cd wizetale-api
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -147,14 +145,7 @@ uvicorn app.main:app --reload
 
 ### Frontend Development
 ```bash
-cd wisetale-app
-npm install
-npm run dev
-```
-
-### Landing Page Development
-```bash
-cd wisetale-landing
+cd wizetale-app
 npm install
 npm run dev
 ```

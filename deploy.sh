@@ -59,7 +59,7 @@ backup_deployment() {
     # Backup environment files
     log_info "Backing up environment files..."
     tar czf "$BACKUP_DIR/${BACKUP_NAME}_env.tar.gz" \
-        wizetale-api/.env* wizetale-app/.env* wizetale-landing/.env* 2>/dev/null || true
+        wizetale-api/.env* wizetale-app/.env* 2>/dev/null || true
     
     log_success "Backup created: $BACKUP_NAME"
 }
@@ -76,10 +76,6 @@ check_env_files() {
     
     if [ ! -f "wizetale-app/.env" ]; then
         missing_files+=("wizetale-app/.env")
-    fi
-    
-    if [ ! -f "wizetale-landing/.env" ]; then
-        missing_files+=("wizetale-landing/.env")
     fi
     
     if [ ${#missing_files[@]} -ne 0 ]; then
@@ -154,24 +150,7 @@ health_check() {
         sleep 5
     done
     
-    # Check landing page health
-    log_info "Checking landing page health..."
-    while true; do
-        if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
-            log_success "Landing page is healthy"
-            break
-        fi
-        
-        local current_time=$(date +%s)
-        local elapsed=$((current_time - start_time))
-        
-        if [ $elapsed -gt $timeout ]; then
-            log_error "Landing page health check timeout"
-            return 1
-        fi
-        
-        sleep 5
-    done
+
     
     log_success "All services are healthy"
 }
@@ -187,7 +166,6 @@ show_status() {
     
     # Show service URLs
     log_info "Service URLs:"
-    echo "  🌐 Landing Page: http://localhost:3000"
     echo "  🎯 Main App: http://localhost:3001"
     echo "  🔧 API: http://localhost:8000"
     echo "  📊 API Docs: http://localhost:8000/docs"

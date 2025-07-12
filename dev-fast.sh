@@ -35,7 +35,7 @@ echo ""
 echo "🎯 Choose your development mode:"
 echo "1) 🐳 Ultra-Fast Docker (BuildKit + cache) - FASTEST BUILD"
 echo "2) 🔥 API Docker + Frontend Native - RECOMMENDED"  
-echo "3) ⚡ API only (wisetale-api) - API development"
+echo "3) ⚡ API only (wizetale-api) - API development"
 echo "4) 🌐 Frontend only (native) - Frontend development"
 echo "5) 🚀 Super Fast: Use existing containers - INSTANT"
 echo ""
@@ -56,10 +56,10 @@ case $choice in
         docker-compose -f docker-compose.dev.yml up -d backend --build
         echo ""
         echo "🎯 Backend started! Now run frontend:"
-        echo "cd wisetale-app && npm run dev"
+        echo "cd wizetale-app && npm run dev"
         echo ""
         echo "🌐 Or landing:"  
-        echo "cd wisetale-landing && npm run dev"
+        
         echo ""
         echo "📺 URLs:"
         echo "- API: http://localhost:8000"
@@ -83,11 +83,11 @@ case $choice in
         case $frontend_choice in
             1)
                 echo "🚀 Starting main app..."
-                cd wisetale-app && npm run dev
+                cd wizetale-app && npm run dev
                 ;;
             2)
                 echo "🚀 Starting landing..."
-                cd wisetale-landing && npm run dev
+                
                 ;;
             *)
                 echo "❌ Invalid choice"

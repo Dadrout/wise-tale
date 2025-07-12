@@ -15,7 +15,7 @@ Wizetale теперь использует **Hugging Face API** для гене�
 Добавьте ваш токен в переменные окружения:
 
 ```bash
-# В wisetale-api/.env
+# В wizetale-api/.env
 HUGGINGFACE_API_KEY=hf_your_token_here
 ```
 
@@ -95,7 +95,7 @@ Content-Type: application/json
 ## 📁 Структура файлов
 
 ```
-wisetale-api/
+wizetale-api/
 ├── app/
 │   ├── services/
 │   │   ├── huggingface_service.py  # 🆕 AI генерация
@@ -118,7 +118,7 @@ python test_ai_images.py
 
 ### Ручное тестирование
 ```bash
-cd wisetale-api
+cd wizetale-api
 HUGGINGFACE_API_KEY=your_token uvicorn app.main:app --reload
 
 # В другом терминале

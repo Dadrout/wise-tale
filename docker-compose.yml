@@ -1,49 +1,49 @@
-# docker-compose for WiseTale full stack
+# docker-compose for Wizetale full stack
 
 services:
   backend:
     build:
-      context: ./wisetale-api
+      context: ./wizetale-api
       target: dev
-    container_name: wisetale-backend
+    container_name: wizetale-backend
     env_file:
-      - ./wisetale-api/.env
+      - ./wizetale-api/.env
     ports:
       - "8000:8000"
     depends_on:
       - redis
     command: .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - ./wisetale-api:/app
+      - ./wizetale-api:/app
       - /app/.venv
 
   frontend:
     build: 
-      context: ./wisetale-app
+      context: ./wizetale-app
       target: dev
-    container_name: wisetale-frontend
+    container_name: wizetale-frontend
     ports:
       - "3001:3001"
     volumes:
-      - ./wisetale-app:/app
+      - ./wizetale-app:/app
     command: npm run dev
 
   celery-worker:
-    image: wisetale-backend
+    image: wizetale-backend
     build:
-      context: ./wisetale-api
+      context: ./wizetale-api
       target: dev
     volumes:
-      - ./wisetale-api:/app
+      - ./wizetale-api:/app
       - /app/.venv
     env_file:
-      - ./wisetale-api/.env
+      - ./wizetale-api/.env
     depends_on:
       - redis
     command: .venv/bin/celery -A app.celery_utils.celery_app worker --loglevel=info
 
   redis:
     image: "redis:7-alpine"
-    container_name: wisetale-redis
+    container_name: wizetale-redis
     ports:
       - "6380:6379" 

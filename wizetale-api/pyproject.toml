@@ -1,5 +1,5 @@
 [project]
-name = "wisetale-api"
+name = "wizetale-api"
 version = "1.0.0"
 description = "AI-powered educational video generation API"
 readme = {text = "Wizetale API - AI-powered educational video generation", content-type = "text/plain"}

@@ -12,7 +12,7 @@ cd ..
 
 # Go to frontend and start it in the background
 echo "-> Starting Frontend..."
-cd wisetale-app
+cd wizetale-app
 npm i
 npm run dev &
 cd ..
