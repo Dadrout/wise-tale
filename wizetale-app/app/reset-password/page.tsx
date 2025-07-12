@@ -54,7 +54,7 @@ export default function ResetPasswordPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
                       <div className="flex justify-center mb-4">
-            <Image src="/images/wizetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
+            <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
           </div>
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
               <CheckCircle className="h-6 w-6 text-green-600" />
@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Image src="/images/wizetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
+            <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
           </div>
           <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
           <CardDescription>

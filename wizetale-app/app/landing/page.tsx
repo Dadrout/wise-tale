@@ -68,7 +68,7 @@ export default function LandingPage() {
               <div className="flex items-center space-x-3 group">
                 <div className="transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
                   <Image
-                    src="/images/wisetale-logo.png"
+                    src="/wisetale-logo.png"
                     alt="Wizetale Logo"
                     width={40}
                     height={40}
@@ -434,7 +434,7 @@ export default function LandingPage() {
               <div>
                 <div className="flex items-center space-x-3 mb-4 group">
                   <div className="transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12">
-                    <Image src="/images/wisetale-logo.png" alt="Wizetale Logo" width={32} height={32} className="w-8 h-8" />
+                    <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={32} height={32} className="w-8 h-8" />
                   </div>
                   <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent">Wizetale</span>
                 </div>

@@ -80,7 +80,7 @@ export default function VerifyEmailPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Image src="/images/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
+            <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
           </div>
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
             <Mail className="h-6 w-6 text-purple-600" />

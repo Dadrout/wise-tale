@@ -32,7 +32,7 @@ export function PageLoader() {
         <div className="relative mb-8">
           <div className="w-24 h-24 mx-auto mb-4 relative animate-bounce">
             <Image
-              src="/images/wizetale-logo.png"
+              src="/wisetale-logo.png"
               alt="Wizetale"
               width={96}
               height={96}
