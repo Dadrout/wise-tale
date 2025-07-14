@@ -160,7 +160,7 @@ async def serve_video_dynamic(user_id: str, video_name: str, request: Request):
 
 
 # Include active routers
-app.include_router(generate.router, prefix="/api/v1")
+app.include_router(generate.router, prefix="/v1")
 
 @app.get("/")
 async def root():
