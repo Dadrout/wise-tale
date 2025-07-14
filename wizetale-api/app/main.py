@@ -1,11 +1,49 @@
 # app/main.py
+import logging
+import firebase_admin
+from firebase_admin import credentials
+import os
+from dotenv import load_dotenv
+
+# --- Firebase Initialization ---
+# This must be the very first thing that happens
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def initialize_firebase():
+    """Initializes the Firebase Admin SDK."""
+    if firebase_admin._apps:
+        logger.info("Firebase already initialized.")
+        return
+
+    try:
+        cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
+        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET")
+
+        if not cred_path or not bucket_name:
+            logger.warning("Firebase credentials or storage bucket not found in env. Skipping initialization.")
+            return
+
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred, {'storageBucket': bucket_name})
+        logger.info(f"✅ Firebase initialized successfully for bucket: {bucket_name}")
+
+    except Exception as e:
+        logger.critical(f"❌ Critical error initializing Firebase: {e}", exc_info=True)
+        # We might want to raise an exception here to halt the app if Firebase is essential
+        raise
+
+load_dotenv()
+initialize_firebase()
+
+
+# --- Now, we can safely import everything else ---
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from dotenv import load_dotenv
 from pathlib import Path
-import os
 import asyncio
 from celery.result import AsyncResult
 import re
@@ -14,31 +52,6 @@ import firebase_admin
 from firebase_admin import credentials
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-
-# Загружаем переменные из .env файла в самом начале
-load_dotenv()
-
-# Initialize Firebase Admin SDK right after loading environment variables
-# to ensure it's available for all other modules.
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-try:
-    # Check if the app is already initialized
-    firebase_admin.get_app()
-except ValueError:
-    # If not initialized, initialize it
-    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
-    storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET")
-    if cred_path and storage_bucket:
-        logger.info(f"Initializing Firebase from credentials file: {cred_path}")
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred, {
-            'storageBucket': storage_bucket
-        })
-    else:
-        logger.warning("Firebase credentials or storage bucket not found. Firebase services will not be available.")
-        pass
 
 # Now that Firebase is initialized, we can import other components
 from app.core.config import settings

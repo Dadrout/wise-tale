@@ -9,26 +9,13 @@ logger = logging.getLogger(__name__)
 
 class FirebaseService:
     def __init__(self):
-        if not firebase_admin._apps:
-            try:
-                creds_path = settings.GOOGLE_APPLICATION_CREDENTIALS_PATH
-                bucket_name = settings.FIREBASE_STORAGE_BUCKET
-                logger.info(f"🔥 Initializing Firebase with bucket: {bucket_name}")
-                if creds_path and bucket_name:
-                    if os.path.exists(creds_path):
-                        cred = credentials.Certificate(creds_path)
-                        firebase_admin.initialize_app(cred, {
-                            'storageBucket': bucket_name.replace("gs://", "")
-                        })
-                        logger.info("✅ Firebase Admin initialized successfully.")
-                    else:
-                        logger.warning(f"⚠️  Firebase Admin not initialized: Credentials file not found at {creds_path}")
-                else:
-                    logger.warning("⚠️  Firebase Admin not initialized: GOOGLE_APPLICATION_CREDENTIALS_PATH or FIREBASE_STORAGE_BUCKET not set.")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize Firebase Admin: {e}", exc_info=True)
-        
-        self.db = firestore.client()
+        # The app should be initialized in the main application entry point.
+        # This service will now assume the app is already initialized.
+        try:
+            self.db = firestore.client()
+        except Exception as e:
+            logger.error(f"❌ Failed to get Firestore client. Is Firebase initialized? Error: {e}")
+            self.db = None
     
     def verify_id_token(self, id_token: str) -> dict:
         """Verifies the ID token and returns the decoded token."""
