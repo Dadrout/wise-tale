@@ -24,8 +24,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 try:
     cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
     bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET")
-    logging.info(f"DEBUG: cred_path from env: {cred_path}")
-    logging.info(f"DEBUG: bucket_name from env: {bucket_name}")
     
     if cred_path and bucket_name:
         cred = credentials.Certificate(cred_path)

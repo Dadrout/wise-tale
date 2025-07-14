@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from uuid import uuid4
 import os
@@ -20,7 +20,10 @@ from celery.result import AsyncResult
 from app.core.config import settings
 from app.services.firebase_service import firebase_service
 from app.services.runware_service import runware_service
-from app.services.pexels_service import pexels_service
+from app.services.supabase_service import supabase_service
+from app.services.task_service import task_service
+from app.celery_utils import generate_story_video_task
+from app.schemas.task import TaskRequest, TaskResponse, TaskStatus
 from app.api.dependencies import get_current_user, verify_api_key
 from openai import AzureOpenAI
 import azure.cognitiveservices.speech as speechsdk
@@ -415,7 +418,7 @@ Prompt (in English):
         logger.warning("Falling back to Pexels for image search.")
         try:
             pexels_query = f"{topic} {subject}"
-            images_data = await pexels_service.search_images(pexels_query, per_page=count)
+            images_data = await supabase_service.search_images(pexels_query, per_page=count)
             if images_data:
                 urls = [img['url'] for img in images_data if 'url' in img]
                 logger.info(f"Found {len(urls)} images from Pexels fallback.")
