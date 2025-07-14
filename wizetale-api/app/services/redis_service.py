@@ -8,7 +8,7 @@ Usage:
         value = redis.get('key')
 """
 import os
-import redis
+import redis.asyncio as redis
 from dotenv import load_dotenv
 import logging
 
@@ -17,12 +17,12 @@ load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 logger = logging.getLogger(__name__)
 
-def get_redis_client():
+async def get_redis_client():
     """Get Redis client, returns None if Redis is unavailable"""
     try:
         client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
         # Test connection
-        client.ping()  # type: ignore
+        await client.ping()
         return client
     except Exception as e:
         logger.warning(f"Redis unavailable, running without cache: {e}")

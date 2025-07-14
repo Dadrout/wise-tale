@@ -38,7 +38,7 @@ initialize_firebase()
 
 
 # --- Now, we can safely import everything else ---
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
@@ -52,6 +52,7 @@ import firebase_admin
 from firebase_admin import credentials
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+import redis
 
 # Now that Firebase is initialized, we can import other components
 from app.core.config import settings
@@ -63,7 +64,7 @@ from app.celery_utils import celery_app
 limiter = Limiter(key_func=get_remote_address)
 
 # Инициализируем сервисы
-redis_service = get_redis_client()
+# redis_service = get_redis_client() # <-- REMOVE THIS
 
 app = FastAPI(
     title="Wizetale API",
@@ -166,10 +167,10 @@ async def root():
     return {"message": "Wizetale API is running!", "version": "1.0.0"}
 
 @app.get("/health")
-async def health():
+async def health(redis: redis.Redis = Depends(get_redis_client)):
     try:
         # Check if Redis is connected
-        ping_response = await redis_service.ping()
+        ping_response = await redis.ping()
         if not ping_response:
             raise Exception("Redis ping failed")
 
