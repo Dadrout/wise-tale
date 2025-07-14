@@ -37,11 +37,10 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
-          // Remove COOP header to allow popup interactions
-          // {
-          //   key: 'Cross-Origin-Opener-Policy',
-          //   value: 'same-origin',
-          // },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
           // Remove COEP header for OAuth compatibility
           // {
           //   key: 'Cross-Origin-Embedder-Policy',
