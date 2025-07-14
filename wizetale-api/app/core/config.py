@@ -16,13 +16,10 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     LOG_LEVEL: str = "INFO"
     DEBUG: bool = False
-    API_KEY: str # The internal API key for securing the API
+    API_KEY: str = "your_default_api_key" # The internal API key for securing the API
 
     # Stability AI API for image generation
     STABILITY_API_KEY: Optional[str] = None
-
-    # Pexels API Key for image search fallback
-    PEXELS_API_KEY: Optional[str] = None
 
     # Azure OpenAI (for story text generation)
     AZURE_OPENAI_ENDPOINT: Optional[str] = None

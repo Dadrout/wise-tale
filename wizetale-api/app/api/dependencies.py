@@ -2,7 +2,6 @@ from typing import Annotated, Optional
 from fastapi import Depends, HTTPException, Security, status, Request
 from fastapi.security import APIKeyHeader, HTTPBearer
 from fastapi.security.api_key import APIKeyHeader
-from app.services.firebase_service import firebase_service
 from app.core.config import settings
 import os
 import logging
@@ -27,6 +26,7 @@ async def verify_api_key(request: Request, api_key: str = Security(API_KEY_HEADE
 oauth2_scheme = HTTPBearer()
 
 async def get_current_user(request: Request):
+    from app.services.firebase_service import firebase_service
     # This is a placeholder for actual user authentication
     # You would typically decode a JWT here or verify a session token
     # For now, we'll just return a dummy user object

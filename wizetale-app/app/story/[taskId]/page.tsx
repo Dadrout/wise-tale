@@ -71,9 +71,9 @@ export default function StoryPage({ params }: { params: { taskId: string } }) {
             {result && (
               <div className="space-y-6">
                 {result.video_url && (
-                  <EnhancedVideoPlayer
-                    videoUrl={result.video_url}
-                  />
+                <EnhancedVideoPlayer
+                  videoUrl={result.video_url}
+                />
                 )}
 
                 <div className="space-y-4">

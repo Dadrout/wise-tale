@@ -13,7 +13,7 @@ echo ""
 
 # Проверяем подключение
 echo "📡 Проверяю подключение к серверу..."
-if ! ssh -i ~/.ssh/wisetale_key -o ConnectTimeout=5 -o BatchMode=yes $SERVER_USER@$SERVER_IP exit 2>/dev/null; then
+if ! ssh -i ~/.ssh/id_rsa_digitalocean -o ConnectTimeout=5 -o BatchMode=yes $SERVER_USER@$SERVER_IP exit 2>/dev/null; then
     echo "❌ Не удается подключиться к серверу"
     exit 1
 fi
@@ -22,7 +22,7 @@ echo "✅ Подключение успешно!"
 
 # Настраиваем сервер
 echo "🔧 Настраиваю сервер..."
-ssh -i ~/.ssh/wisetale_key $SERVER_USER@$SERVER_IP << 'EOF'
+ssh -i ~/.ssh/id_rsa_digitalocean $SERVER_USER@$SERVER_IP << 'EOF'
 echo "📦 Обновляю систему..."
 apt update && apt upgrade -y
 

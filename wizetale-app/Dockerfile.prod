@@ -4,12 +4,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+COPY .env .env
 RUN npm run build
 
 # Stage 2: Production image
 FROM node:18-alpine
 WORKDIR /app
 
+COPY --from=builder /app/.env ./.env
 # Copy the standalone output
 COPY --from=builder /app/.next/standalone ./
 # Copy public and static assets

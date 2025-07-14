@@ -1,36 +1,48 @@
-# app/main.py
 import logging
+import os
+import re
+import asyncio
 import firebase_admin
 from firebase_admin import credentials
-import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Depends, Header
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from dotenv import load_dotenv
 from pathlib import Path
-import asyncio
 from celery.result import AsyncResult
-import re
-import logging
-import firebase_admin
-from firebase_admin import credentials
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-import redis
 
-# Now that Firebase is initialized, we can import other components
+# Load environment variables from .env file
+load_dotenv()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Initialize Firebase Admin SDK
+try:
+    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
+    bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET")
+    logging.info(f"DEBUG: cred_path from env: {cred_path}")
+    logging.info(f"DEBUG: bucket_name from env: {bucket_name}")
+    
+    if cred_path and bucket_name:
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred, {'storageBucket': bucket_name})
+        logging.info("✅ Firebase Admin SDK initialized successfully.")
+    else:
+        logging.warning("⚠️ Firebase credentials not found. Firebase services will be disabled.")
+except Exception as e:
+    logging.error(f"❌ Failed to initialize Firebase Admin SDK: {e}", exc_info=True)
+
+# Import other components after Firebase is initialized
 from app.core.config import settings
 from app.api.v1 import generate
-from app.services.redis_service import get_redis_client
 from app.celery_utils import celery_app
 
 # Initialize Limiter
 limiter = Limiter(key_func=get_remote_address)
-
-# Инициализируем сервисы
-# redis_service = get_redis_client() # <-- REMOVE THIS
 
 app = FastAPI(
     title="Wizetale API",
@@ -41,22 +53,14 @@ app = FastAPI(
 app.state.limiter = limiter
 
 # CORS settings
-# For development, allow all origins to avoid issues with Docker networking.
-# For production, this should be a specific list of domains.
 environment = os.getenv("ENVIRONMENT", "development")
-
-if environment == "production":
-    # Production CORS settings - replace with your actual domains
-    origins = [
-        "https://wizetale.com",
-        "https://www.wizetale.com",
-        "https://wizetale.vercel.app",
-        "https://wizetale-git-main-wizetale.vercel.app",
-        "https://wizetale-git-dev-wizetale.vercel.app"
-    ]
-else:
-    # Development settings
-    origins = ["*"]
+origins = [
+    "https://wizetale.com",
+    "https://www.wizetale.com",
+    "https://wizetale.vercel.app",
+]
+if environment == "development":
+    origins.append("*")
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,15 +70,11 @@ app.add_middleware(
     allow_headers=["*", "X-API-Key"],
 )
 
-# Create static directory if it doesn't exist for serving generated files
+# Static files setup
 static_dir = Path("static")
 static_dir.mkdir(exist_ok=True)
-
-
-# Mount the static directory to serve generated files
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# Custom endpoint for serving videos with range request support (optional, can be simplified)
 @app.get("/static/{user_id}/{video_name}")
 async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
     video_path = static_dir / user_id / video_name
@@ -89,7 +89,6 @@ async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
         if range_match:
             start = int(range_match.group(1))
             end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
-            
             end = min(end, file_size - 1)
             content_length = end - start + 1
             
@@ -100,8 +99,7 @@ async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
                     while remaining > 0:
                         chunk_size = min(8192, remaining)
                         chunk = video_file.read(chunk_size)
-                        if not chunk:
-                            break
+                        if not chunk: break
                         remaining -= len(chunk)
                         yield chunk
             
@@ -111,33 +109,16 @@ async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
                 'Content-Length': str(content_length),
                 'Content-Type': 'video/mp4',
             }
+            return StreamingResponse(generate_video_chunk(), status_code=206, headers=headers)
             
-            return StreamingResponse(
-                generate_video_chunk(),
-                status_code=206,
-                headers=headers
-            )
-            
-    return FileResponse(
-        video_path, 
-        media_type="video/mp4", 
-        headers={"Accept-Ranges": "bytes"}
-    )
+    return FileResponse(video_path, media_type="video/mp4", headers={"Accept-Ranges": "bytes"})
 
-
-# Include active routers
+# Include API routers
 app.include_router(generate.router, prefix="/v1")
-
 
 @app.get("/health", status_code=200)
 async def health_check():
-    """A simple health check endpoint that always returns 200 OK."""
     return {"status": "ok"}
-
-
-@app.get("/api/v1/docs")
-async def api_docs():
-    return {"message": "API documentation available at /docs"}
 
 @app.websocket("/ws/status/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
@@ -146,26 +127,12 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     
     try:
         while not task_result.ready():
-            await websocket.send_json({
-                "task_id": task_id,
-                "status": task_result.status,
-                "info": task_result.info,
-            })
-            await asyncio.sleep(1) # Poll every second
-            # Re-fetch the result object to get the latest status
+            await websocket.send_json({"task_id": task_id, "status": task_result.status, "info": task_result.info})
+            await asyncio.sleep(1)
             task_result = AsyncResult(task_id, app=celery_app)
         
-        # Send the final result
-        await websocket.send_json({
-            "task_id": task_id,
-            "status": task_result.status,
-            "info": task_result.info,
-        })
+        await websocket.send_json({"task_id": task_id, "status": task_result.status, "info": task_result.info})
     except WebSocketDisconnect:
-        print(f"Client disconnected from task {task_id}")
+        logging.info(f"Client disconnected from task {task_id}")
     finally:
-        await websocket.close()
-
-@app.get("/api/health")
-async def api_health():
-    return await health()
+        await websocket.close() 
