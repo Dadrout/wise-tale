@@ -24,6 +24,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      # Mount the entire letsencrypt directory to provide access to all cert files
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
