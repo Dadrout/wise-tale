@@ -1,116 +1,91 @@
 version: '3.8'
 
 services:
+  # Redis service
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: wizetale-redis-prod
-    restart: always
-    networks:
-      - wizetale-network
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
 
+  # PostgreSQL service
+  postgres:
+    image: postgres:15-alpine
+    container_name: wizetale-postgres-prod
+    environment:
+      POSTGRES_DB: wizetale_db
+      POSTGRES_USER: wizetale_user
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # API service
+  api:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-api-prod
+    container_name: wizetale-api-prod
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - ./wizetale-api:/app
+
+  # Celery worker service  
   celery-worker:
     build:
       context: ./wizetale-api
       dockerfile: Dockerfile
     image: wizetale-celery-worker-prod
     container_name: wizetale-celery-worker-prod
-    command: celery -A app.celery_utils.celery worker --loglevel=info
-    restart: always
-    env_file:
-      - ./wizetale-api/.env
+    # Используем worker.py как точку входа для Celery
+    command: celery -A worker.celery_app worker --loglevel=info
     depends_on:
       - redis
-      - backend
-    networks:
-      - wizetale-network
-
-  celery-flower:
-    image: mher/flower:2.0
-    container_name: wizetale-flower-prod
-    command: celery -A app.celery_utils.celery flower --broker=redis://redis:6379/0 --port=5555
-    restart: always
-    ports:
-      - "5555:5555"
-    depends_on:
-      - redis
-      - celery-worker
-    networks:
-      - wizetale-network
-
-  backend:
-    build:
-      context: ./wizetale-api
-      dockerfile: Dockerfile
-    image: wizetale-backend-prod
-    container_name: wizetale-backend-prod
-    restart: always
-    env_file:
-      - ./wizetale-api/.env
-    networks:
-      - wizetale-network
-    depends_on:
-      - redis
-
-  worker:
-    build:
-      context: ./wizetale-api
-      dockerfile: Dockerfile
-    image: wizetale-worker-prod
-    container_name: wizetale-worker-prod
-    restart: always
-    command: ["celery", "-A", "app.celery_utils.celery_app", "worker", "--loglevel=info"]
-    env_file:
-      - ./wizetale-api/.env
+      - postgres
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
     volumes:
-      - ./wizetale-api/generated_videos:/app/generated_videos
-      - ./wizetale-api/generated_images:/app/generated_images
-      - ./wizetale-api/generated_audio:/app/generated_audio
-    networks:
-      - wizetale-network
-    depends_on:
-      - redis
-      - backend
+      - ./wizetale-api:/app
 
+  # Frontend service
   frontend:
     build:
       context: ./wizetale-app
-      dockerfile: Dockerfile.prod
-      args:
-        NEXT_PUBLIC_API_KEY: ${API_KEY}
-        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
-        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
-        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
-        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
+      dockerfile: Dockerfile
     image: wizetale-frontend-prod
     container_name: wizetale-frontend-prod
-    restart: always
-    environment:
-      - NEXT_PUBLIC_API_URL=https://api.wizetale.com
-    networks:
-      - wizetale-network
-
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: wizetale-nginx-prod
-    restart: always
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/templates/default.conf.template
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    environment:
-      - API_KEY=${API_KEY}
-      - NGINX_HOST=wizetale.com
-    command: /bin/sh -c 'envsubst ''$$NGINX_HOST,$$API_KEY'' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"'
+      - "3000:3000"
     depends_on:
-      - backend
-      - frontend
-    networks:
-      - wizetale-network
+      - api
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://138.197.191.222:8000
+    volumes:
+      - ./wizetale-app:/app
 
-networks:
-  wizetale-network:
-    driver: bridge 
+volumes:
+  redis_data:
+  postgres_data:
