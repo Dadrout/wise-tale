@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # API key security scheme
-API_KEY_HEADER = APIKeyHeader(name="X-API-KEY", auto_error=False)
+API_KEY_HEADER = APIKeyHeader(name="X_API_KEY", auto_error=False)
 
 async def verify_api_key(request: Request, api_key: str = Security(API_KEY_HEADER)):
     # Log all incoming headers for debugging purposes
