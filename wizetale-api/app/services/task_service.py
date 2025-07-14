@@ -8,7 +8,7 @@ import json
 import logging
 from pathlib import Path
 
-from ..schemas.task import TaskStatus, TaskCreate, TaskResponse, TaskStatusResponse, TaskResult
+from ..schemas.task import TaskStatus, TaskRequest, TaskResponse, TaskStatusResponse, TaskResult
 from .redis_service import get_redis_client
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class TaskService:
         self.executor = ThreadPoolExecutor(max_workers=3)  # Limit concurrent video generation
         self.redis_client = get_redis_client()
         
-    async def create_task(self, task_data: TaskCreate) -> TaskResponse:
+    async def create_task(self, task_data: TaskRequest, user_id: str) -> TaskResponse:
         """Create a new async task"""
         task_id = str(uuid.uuid4())
         now = datetime.now()
@@ -35,7 +35,7 @@ class TaskService:
             "subject": task_data.subject,
             "topic": task_data.topic,
             "level": task_data.level,
-            "user_id": task_data.user_id,
+            "user_id": user_id,
             "result": None,
             "error": None
         }
@@ -214,7 +214,7 @@ class TaskService:
     #         logger.error(f"Video generation failed: {e}")
     #         raise
     
-    def _start_background_task(self, task_id: str, task_data: TaskCreate):
+    def _start_background_task(self, task_id: str, task_data: TaskRequest):
         """Start background video generation"""
         def run_generation():
             try:
