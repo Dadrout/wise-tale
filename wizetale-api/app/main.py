@@ -58,7 +58,7 @@ import redis
 from app.core.config import settings
 from app.api.v1 import generate
 from app.services.redis_service import get_redis_client
-from app.celery_utils import celery_app
+# from app.celery_utils import celery_app
 
 # Initialize Limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -191,32 +191,32 @@ async def health(redis: redis.Redis = Depends(get_redis_client)):
 async def api_docs():
     return {"message": "API documentation available at /docs"}
 
-@app.websocket("/ws/status/{task_id}")
-async def websocket_endpoint(websocket: WebSocket, task_id: str):
-    await websocket.accept()
-    task_result = AsyncResult(task_id, app=celery_app)
-    
-    try:
-        while not task_result.ready():
-            await websocket.send_json({
-                "task_id": task_id,
-                "status": task_result.status,
-                "info": task_result.info,
-            })
-            await asyncio.sleep(1) # Poll every second
-            # Re-fetch the result object to get the latest status
-            task_result = AsyncResult(task_id, app=celery_app)
-        
-        # Send the final result
-        await websocket.send_json({
-            "task_id": task_id,
-            "status": task_result.status,
-            "info": task_result.info,
-        })
-    except WebSocketDisconnect:
-        print(f"Client disconnected from task {task_id}")
-    finally:
-        await websocket.close()
+# @app.websocket("/ws/status/{task_id}")
+# async def websocket_endpoint(websocket: WebSocket, task_id: str):
+#     await websocket.accept()
+#     task_result = AsyncResult(task_id, app=celery_app)
+#     
+#     try:
+#         while not task_result.ready():
+#             await websocket.send_json({
+#                 "task_id": task_id,
+#                 "status": task_result.status,
+#                 "info": task_result.info,
+#             })
+#             await asyncio.sleep(1) # Poll every second
+#             # Re-fetch the result object to get the latest status
+#             task_result = AsyncResult(task_id, app=celery_app)
+#         
+#         # Send the final result
+#         await websocket.send_json({
+#             "task_id": task_id,
+#             "status": task_result.status,
+#             "info": task_result.info,
+#         })
+#     except WebSocketDisconnect:
+#         print(f"Client disconnected from task {task_id}")
+#     finally:
+#         await websocket.close()
 
 @app.get("/api/health")
 async def api_health():
