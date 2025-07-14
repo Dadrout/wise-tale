@@ -37,4 +37,8 @@ services:
       - backend
       - frontend
     networks:
-      - wizetale-network 
+      - wizetale-network
+
+networks:
+  wizetale-network:
+    driver: bridge 
