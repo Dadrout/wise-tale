@@ -12,7 +12,7 @@ WORKDIR /app
 # Copy dependency files and install them
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir gunicorn uvicorn
-RUN pip install --no-cache-dir -r pyproject.toml
+RUN pip install --no-cache-dir .
 
 # Copy the rest of the application
 COPY app ./app
