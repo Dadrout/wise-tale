@@ -22,7 +22,8 @@ dependencies = [
     "slowapi",
     "pydantic-settings",
     "openai",
-    "azure-identity"
+    "azure-identity",
+    "azure-cognitiveservices-speech"
 ]
 
 [project.optional-dependencies]
