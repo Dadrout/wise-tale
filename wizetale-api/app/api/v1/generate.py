@@ -21,7 +21,6 @@ from app.core.config import settings
 from app.services.firebase_service import firebase_service
 from app.services.runware_service import runware_service
 from app.services.task_service import task_service
-from app.celery_utils import generate_story_video_task
 from app.schemas.task import TaskRequest, TaskResponse, TaskStatus
 from app.api.dependencies import get_current_user, verify_api_key
 from openai import AzureOpenAI
