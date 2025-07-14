@@ -86,7 +86,6 @@ services:
     restart: always
     depends_on:
       - api
-      - frontend
 
   nginx:
     image: nginx:latest
