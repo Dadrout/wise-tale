@@ -20,7 +20,7 @@ class TaskBase(BaseModel):
     user_id: Optional[str] = None  # Changed from int to str for Firebase UID
 
 
-class TaskCreate(TaskBase):
+class TaskRequest(TaskBase):
     pass
 
 
