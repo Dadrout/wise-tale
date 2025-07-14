@@ -114,6 +114,10 @@ async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
 # Include API routers
 app.include_router(generate.router, prefix="/api/v1")
 
+@app.get("/ping", status_code=200)
+async def ping():
+    return {"status": "pong"}
+
 @app.get("/health", status_code=200)
 async def health_check():
     return {"status": "ok"}

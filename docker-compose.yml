@@ -34,6 +34,7 @@ services:
     container_name: wizetale-api-prod
     ports:
       - "8000:8000"
+      - "8001:8000" # Временно открываем порт 8001 для теста
     depends_on:
       - redis
       - postgres
@@ -43,8 +44,8 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
-    volumes:
-      - ./wizetale-api:/app
+    # volumes:
+    #   - ./wizetale-api:/app
 
   # Celery worker service  
   celery-worker:
