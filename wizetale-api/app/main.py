@@ -162,6 +162,11 @@ async def serve_video_dynamic(user_id: str, video_name: str, request: Request):
 # Include active routers
 app.include_router(generate.router, prefix="/v1")
 
+@app.get("/healthz", status_code=200)
+async def simple_health_check():
+    """A simple health check endpoint that doesn't depend on any services."""
+    return {"status": "ok"}
+
 @app.get("/")
 async def root():
     return {"message": "Wizetale API is running!", "version": "1.0.0"}
