@@ -86,6 +86,7 @@ services:
     restart: always
     depends_on:
       - api
+      - frontend
 
   nginx:
     image: nginx:latest
@@ -104,6 +105,14 @@ services:
     depends_on:
       - api
       - frontend
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
   redis_data:
