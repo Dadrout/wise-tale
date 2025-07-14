@@ -44,12 +44,12 @@ class ApiService {
     
     const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
     const config: RequestInit = {
-      ...options,
       headers: {
         'Content-Type': 'application/json',
-        'X-API-KEY': apiKey,
+        ...(apiKey ? { 'x-api-key': apiKey } : {}),
         ...options.headers,
       },
+      ...options,
     };
 
     try {

@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # API key security scheme
-API_KEY_HEADER = APIKeyHeader(name="X_API_KEY", auto_error=False)
+API_KEY_HEADER = APIKeyHeader(name="x-api-key", auto_error=False)
 
 async def verify_api_key(request: Request, api_key: str = Security(API_KEY_HEADER)):
     # Log all incoming headers for debugging purposes
@@ -28,5 +28,6 @@ oauth2_scheme = HTTPBearer()
 
 async def get_current_user(request: Request):
     # This is a placeholder for actual user authentication
-    # You would typically get the user from the request, e.g., from a token
-    return {"user_id": "123", "username": "testuser"} 
+    # You would typically get the user from the request context (e.g., from a decoded JWT)
+    # For now, we'll return a mock user
+    return {"id": "user123", "username": "testuser"} 
