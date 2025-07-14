@@ -167,7 +167,19 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "environment": environment}
+    try:
+        # Check if Redis is connected
+        ping_response = await redis_service.ping()
+        if not ping_response:
+            raise Exception("Redis ping failed")
+
+        return JSONResponse(content={"status": "healthy", "redis_connected": True})
+    except Exception as e:
+        logger.error(f"Health check failed: {e}", exc_info=True)
+        return JSONResponse(
+            content={"status": "unhealthy", "reason": str(e)}, 
+            status_code=503
+        )
 
 @app.get("/api/v1/docs")
 async def api_docs():
