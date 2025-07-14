@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir .
 COPY app ./app
 COPY worker.py ./
 COPY gunicorn.conf.py .
+COPY time-capsule-d5a66-c542dacf194a.json /app/time-capsule-d5a66-c542dacf194a.json
 
 # Expose port and run
 EXPOSE 8000
