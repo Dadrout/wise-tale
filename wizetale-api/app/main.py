@@ -10,15 +10,21 @@ import asyncio
 from celery.result import AsyncResult
 import re
 
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+import logging
+import firebase_admin
+from firebase_admin import credentials
+
+from app.core.config import settings
+from app.api.v1 import generate
+from app.services.redis_service import get_redis_client
+
 # Загружаем переменные из .env файла в самом начале
 load_dotenv()
 
 # Import Celery app
 from app.celery_utils import celery_app
-
-# Import active routers
-from app.api.v1 import generate
-from app.services.redis_service import get_redis_client
 
 # Инициализируем сервисы
 redis_service = get_redis_client()
@@ -52,7 +58,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-API-Key"],
 )
 
 # Create static directory if it doesn't exist for serving generated files
@@ -155,3 +161,34 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
         print(f"Client disconnected from task {task_id}")
     finally:
         await websocket.close()
+
+@app.get("/api/health")
+async def api_health():
+    return await health()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize Firebase Admin SDK
+try:
+    # Check if the app is already initialized
+    firebase_admin.get_app()
+except ValueError:
+    # If not initialized, initialize it
+    cred_path = settings.GOOGLE_APPLICATION_CREDENTIALS_PATH
+    if cred_path:
+        logger.info(f"Initializing Firebase from credentials file: {cred_path}")
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': settings.FIREBASE_STORAGE_BUCKET
+        })
+    else:
+        logger.warning("Firebase credentials not found. Firebase services will not be available.")
+        # Handle cases where Firebase is not configured (e.g., local development without credentials)
+        # You might want to initialize with no credentials for some emulators, or skip initialization.
+        # For now, we'll just log a warning.
+        pass
+
+
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=["100 per minute"])
