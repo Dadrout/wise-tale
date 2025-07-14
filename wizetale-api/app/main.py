@@ -4,41 +4,7 @@ import firebase_admin
 from firebase_admin import credentials
 import os
 from dotenv import load_dotenv
-
-# --- Firebase Initialization ---
-# This must be the very first thing that happens
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-def initialize_firebase():
-    """Initializes the Firebase Admin SDK."""
-    if firebase_admin._apps:
-        logger.info("Firebase already initialized.")
-        return
-
-    try:
-        cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
-        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET")
-
-        if not cred_path or not bucket_name:
-            logger.warning("Firebase credentials or storage bucket not found in env. Skipping initialization.")
-            return
-
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred, {'storageBucket': bucket_name})
-        logger.info(f"✅ Firebase initialized successfully for bucket: {bucket_name}")
-
-    except Exception as e:
-        logger.critical(f"❌ Critical error initializing Firebase: {e}", exc_info=True)
-        # We might want to raise an exception here to halt the app if Firebase is essential
-        raise
-
-load_dotenv()
-initialize_firebase()
-
-
-# --- Now, we can safely import everything else ---
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
@@ -110,13 +76,13 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Custom endpoint for serving videos with range request support (optional, can be simplified)
 @app.get("/static/{user_id}/{video_name}")
-async def serve_video_dynamic(user_id: str, video_name: str, request: Request):
+async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
     video_path = static_dir / user_id / video_name
     if not video_path.is_file():
         return JSONResponse(content={"error": "Video not found"}, status_code=404)
     
     file_size = video_path.stat().st_size
-    range_header = request.headers.get('Range')
+    range_header = range
     
     if range_header:
         range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
@@ -162,30 +128,12 @@ async def serve_video_dynamic(user_id: str, video_name: str, request: Request):
 # Include active routers
 app.include_router(generate.router, prefix="/v1")
 
-@app.get("/healthz", status_code=200)
-async def simple_health_check():
-    """A simple health check endpoint that doesn't depend on any services."""
+
+@app.get("/health", status_code=200)
+async def health_check():
+    """A simple health check endpoint that always returns 200 OK."""
     return {"status": "ok"}
 
-@app.get("/")
-async def root():
-    return {"message": "Wizetale API is running!", "version": "1.0.0"}
-
-@app.get("/health")
-async def health(redis: redis.Redis = Depends(get_redis_client)):
-    try:
-        # Check if Redis is connected
-        ping_response = await redis.ping()
-        if not ping_response:
-            raise Exception("Redis ping failed")
-
-        return JSONResponse(content={"status": "healthy", "redis_connected": True})
-    except Exception as e:
-        logger.error(f"Health check failed: {e}", exc_info=True)
-        return JSONResponse(
-            content={"status": "unhealthy", "reason": str(e)}, 
-            status_code=503
-        )
 
 @app.get("/api/v1/docs")
 async def api_docs():
