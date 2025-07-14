@@ -3,8 +3,9 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from './use-auth'
 import { trackEvent } from '@/lib/analytics'
+import { useToast } from './use-toast';
 
-const API_URL = 'http://localhost:8000'
+const API_URL = '/api/v1';
 
 interface GenerateParams {
   subject: string
@@ -40,7 +41,7 @@ export const useStoryGenerator = () => {
             headers['Authorization'] = `Bearer ${token}`
           }
 
-          const res = await fetch(`${API_URL}/api/v1/tasks/${taskId}`, { headers })
+          const res = await fetch(`${API_URL}/tasks/${taskId}`, { headers })
           if (!res.ok) {
             // Stop polling on server error
             clearInterval(interval)
@@ -92,7 +93,7 @@ export const useStoryGenerator = () => {
         throw new Error("Not authenticated")
       }
 
-      const response = await fetch(`${API_URL}/api/v1/generate`, {
+      const response = await fetch(`${API_URL}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

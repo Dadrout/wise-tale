@@ -44,7 +44,7 @@ export function WaitlistForm({
     setError("")
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/waitlist`, {
+      const response = await fetch('/api/waitlist', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

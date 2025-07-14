@@ -1,8 +1,7 @@
 // API service for WiseTale backend
 // Use Vercel proxy to avoid Mixed Content issues with HTTPS
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? '/api'
-  : 'http://localhost:8000';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface GenerateRequest {
   subject: string;
@@ -41,7 +40,7 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
