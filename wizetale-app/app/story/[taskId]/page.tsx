@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { AlertTriangle, BookOpen, Film } from "lucide-react"
 
+export const dynamic = 'force-dynamic';
+
 export default function StoryPage({ params }: { params: { taskId: string } }) {
   const { taskId } = params
   const { isPolling, progress, status, error, result } = useStoryPoller(taskId)
@@ -68,10 +70,11 @@ export default function StoryPage({ params }: { params: { taskId: string } }) {
 
             {result && (
               <div className="space-y-6">
-                <EnhancedVideoPlayer
-                  videoUrl={result.video_url}
-                  images={result.images_used || []}
-                />
+                {result.video_url && (
+                  <EnhancedVideoPlayer
+                    videoUrl={result.video_url}
+                  />
+                )}
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
