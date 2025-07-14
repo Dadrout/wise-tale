@@ -112,7 +112,7 @@ async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
     return FileResponse(video_path, media_type="video/mp4", headers={"Accept-Ranges": "bytes"})
 
 # Include API routers
-app.include_router(generate.router, prefix="/v1")
+app.include_router(generate.router, prefix="/api/v1")
 
 @app.get("/health", status_code=200)
 async def health_check():
