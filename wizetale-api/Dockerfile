@@ -1,41 +1,26 @@
-# Multi-stage build for maximum optimization
-# --- Base Stage ---
-FROM python:3.11 AS base
+FROM python:3.11-slim
 
-# Install system dependencies that might be needed by Python packages
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    libass9 libfreetype6 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for faster dependency management
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install uv
-
-# Set workdir and copy dependency files
-WORKDIR /app
-COPY pyproject.toml poetry.lock* ./
-
-# Install dependencies in a virtual environment
-RUN uv venv .venv && \
-    . .venv/bin/activate && \
-    uv pip install -r pyproject.toml
-
-# --- Development Stage ---
-FROM base AS dev
+# Set workdir
 WORKDIR /app
 
-# Copy the rest of the application code
-COPY . .
+# Copy dependency files and install them
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir gunicorn uvicorn
+RUN pip install --no-cache-dir .
 
-# No extra install needed; deps already in .venv
-CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy the rest of the application
+COPY app ./app
+COPY worker.py ./
+COPY gunicorn.conf.py .
 
-# --- Production Stage ---
-FROM base AS prod
-WORKDIR /app
-COPY --from=dev /app .
+# Expose port and run
+EXPOSE 8000
 
-# No CMD here, will be provided by docker-compose
+# Use a simple, direct gunicorn command to avoid config file issues
+# Start with 1 worker to ensure stability, can be increased later
+CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
