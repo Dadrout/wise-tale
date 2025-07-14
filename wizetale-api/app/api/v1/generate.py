@@ -20,7 +20,6 @@ from celery.result import AsyncResult
 from app.core.config import settings
 from app.services.firebase_service import firebase_service
 from app.services.runware_service import runware_service
-from app.services.supabase_service import supabase_service
 from app.services.task_service import task_service
 from app.celery_utils import generate_story_video_task
 from app.schemas.task import TaskRequest, TaskResponse, TaskStatus
@@ -418,7 +417,7 @@ Prompt (in English):
         logger.warning("Falling back to Pexels for image search.")
         try:
             pexels_query = f"{topic} {subject}"
-            images_data = await supabase_service.search_images(pexels_query, per_page=count)
+            images_data = await firebase_service.search_images(pexels_query, per_page=count)
             if images_data:
                 urls = [img['url'] for img in images_data if 'url' in img]
                 logger.info(f"Found {len(urls)} images from Pexels fallback.")

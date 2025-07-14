@@ -24,7 +24,7 @@ dependencies = [
     "pydantic-settings",
     "openai",
     "azure-identity",
-    "azure-cognitiveservices-speech"
+    "azure-cognitiveservices-speech",
 ]
 
 [project.optional-dependencies]
