@@ -5,7 +5,7 @@ import { useAuth } from './use-auth'
 import { trackEvent } from '@/lib/analytics'
 import { useToast } from './use-toast';
 
-const API_URL = '/api/v1';
+const API_URL = '/v1';
 
 interface GenerateParams {
   subject: string

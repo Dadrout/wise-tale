@@ -1,7 +1,9 @@
 // API service for WiseTale backend
 // Use Vercel proxy to avoid Mixed Content issues with HTTPS
+import { trackEvent } from './analytics';
+
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || '/api';
+  process.env.NEXT_PUBLIC_API_URL || '/v1';
 
 export interface GenerateRequest {
   subject: string;
