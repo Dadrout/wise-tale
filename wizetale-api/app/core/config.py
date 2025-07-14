@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     LOG_LEVEL: str = "INFO"
     DEBUG: bool = False
-    
+    API_KEY: str # The internal API key for securing the API
+
     # Stability AI API for image generation
     STABILITY_API_KEY: Optional[str] = None
 
