@@ -75,6 +75,8 @@ services:
     build:
       context: ./wizetale-app
       dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_KEY: ${API_KEY}
     image: wizetale-frontend-prod
     container_name: wizetale-frontend-prod
     restart: always
