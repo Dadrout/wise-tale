@@ -12,7 +12,7 @@ const nextConfig = {
     unoptimized: true,
   },
   // Enable standalone mode for Docker production builds
-  output: 'standalone',
+  output: 'export',
   // Optional: add compression for better performance
   compress: true,
   // Optional: enable experimental features for better performance
