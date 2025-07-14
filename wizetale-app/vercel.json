@@ -49,5 +49,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://www.wizetale.com/api/:path*"
+    }
   ]
 } 

@@ -3,7 +3,7 @@
 import { trackEvent } from './analytics';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || '/v1';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface GenerateRequest {
   subject: string;
