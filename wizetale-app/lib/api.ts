@@ -46,7 +46,7 @@ class ApiService {
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(apiKey ? { 'x-api-key': apiKey } : {}),
+        ...(apiKey ? { 'X-API-KEY': apiKey } : {}),
         ...options.headers,
       },
       ...options,
