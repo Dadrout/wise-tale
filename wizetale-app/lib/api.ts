@@ -69,7 +69,7 @@ class ApiService {
 
   // Generate video story
   async generateVideo(request: GenerateRequest): Promise<GenerateResponse> {
-    return this.request<GenerateResponse>('/api/v1/generate/', {
+    return this.request<GenerateResponse>('/v1/generate/', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -77,12 +77,12 @@ class ApiService {
 
   // Get generation status
   async getGenerationStatus(generationId: string): Promise<GenerationStatus> {
-    return this.request<GenerationStatus>(`/api/v1/generate/status/${generationId}`);
+    return this.request<GenerationStatus>(`/v1/generate/status/${generationId}`);
   }
 
   // Get user's recent generations
   async getUserGenerations(userId: number, limit: number = 10): Promise<any[]> {
-    return this.request<any>(`/api/v1/generate/user/${userId}/recent?limit=${limit}`);
+    return this.request<any>(`/v1/generate/user/${userId}/recent?limit=${limit}`);
   }
 
   // Poll generation status with timeout
