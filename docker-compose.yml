@@ -53,8 +53,8 @@ services:
     build:
       context: ./wizetale-api
       dockerfile: Dockerfile
-    image: wizetale-celery-worker-prod
-    container_name: wizetale-celery-worker-prod
+    image: wizetale-celery-worker
+    container_name: wizetale-celery-worker
     # Используем worker.py как точку входа для Celery
     command: celery -A worker.celery_app worker --loglevel=info
     depends_on:
@@ -81,15 +81,29 @@ services:
         NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
         NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
         NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
-    image: wizetale-frontend-prod
-    container_name: wizetale-frontend-prod
-    ports:
-      - "3000:3000"
+    image: wizetale-frontend
+    container_name: wisetale-frontend
+    restart: always
     depends_on:
       - api
-    restart: unless-stopped
-    environment:
-      - REACT_APP_API_URL=http://138.197.191.222:8000
+
+  nginx:
+    image: nginx:latest
+    container_name: wisetale-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    command: /bin/sh -c "envsubst '$$API_KEY' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    env_file:
+      - .env
+    depends_on:
+      - api
+      - frontend
 
 volumes:
   redis_data:
