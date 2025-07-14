@@ -11,6 +11,7 @@ __pycache__/
 *.pyd
 .Python
 venv/
+.venv/
 env/
 
 # Next.js build output
@@ -73,3 +74,12 @@ __pycache__/
 *.pyc
 generated_audio/
 generated_videos/
+node_modules/
+.next/
+dist/
+build/
+.pnpm-store/
+.pytest_cache/
+.cache/
+*.db
+*.sqlite
