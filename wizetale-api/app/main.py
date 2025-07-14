@@ -9,22 +9,45 @@ import os
 import asyncio
 from celery.result import AsyncResult
 import re
-
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 import logging
 import firebase_admin
 from firebase_admin import credentials
-
-from app.core.config import settings
-from app.api.v1 import generate
-from app.services.redis_service import get_redis_client
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 # Загружаем переменные из .env файла в самом начале
 load_dotenv()
 
-# Import Celery app
+# Initialize Firebase Admin SDK right after loading environment variables
+# to ensure it's available for all other modules.
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+try:
+    # Check if the app is already initialized
+    firebase_admin.get_app()
+except ValueError:
+    # If not initialized, initialize it
+    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
+    storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET")
+    if cred_path and storage_bucket:
+        logger.info(f"Initializing Firebase from credentials file: {cred_path}")
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': storage_bucket
+        })
+    else:
+        logger.warning("Firebase credentials or storage bucket not found. Firebase services will not be available.")
+        pass
+
+# Now that Firebase is initialized, we can import other components
+from app.core.config import settings
+from app.api.v1 import generate
+from app.services.redis_service import get_redis_client
 from app.celery_utils import celery_app
+
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Инициализируем сервисы
 redis_service = get_redis_client()
@@ -34,6 +57,8 @@ app = FastAPI(
     description="AI-powered educational video generation",
     version="1.0.0"
 )
+
+app.state.limiter = limiter
 
 # CORS settings
 # For development, allow all origins to avoid issues with Docker networking.
@@ -165,30 +190,3 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
 @app.get("/api/health")
 async def api_health():
     return await health()
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize Firebase Admin SDK
-try:
-    # Check if the app is already initialized
-    firebase_admin.get_app()
-except ValueError:
-    # If not initialized, initialize it
-    cred_path = settings.GOOGLE_APPLICATION_CREDENTIALS_PATH
-    if cred_path:
-        logger.info(f"Initializing Firebase from credentials file: {cred_path}")
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred, {
-            'storageBucket': settings.FIREBASE_STORAGE_BUCKET
-        })
-    else:
-        logger.warning("Firebase credentials not found. Firebase services will not be available.")
-        # Handle cases where Firebase is not configured (e.g., local development without credentials)
-        # You might want to initialize with no credentials for some emulators, or skip initialization.
-        # For now, we'll just log a warning.
-        pass
-
-
-# Initialize Limiter
-limiter = Limiter(key_func=get_remote_address, default_limits=["100 per minute"])
