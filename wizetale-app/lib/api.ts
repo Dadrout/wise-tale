@@ -47,10 +47,12 @@ class ApiService {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'apikey': apiKey,
+        apikey: apiKey,
         ...options.headers,
       },
     };
+
+    console.log("Final headers being sent:", config.headers); // DEBUG LINE
 
     try {
       const response = await fetch(url, config);
