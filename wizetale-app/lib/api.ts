@@ -47,7 +47,7 @@ class ApiService {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        apikey: apiKey,
+        'X-API-KEY': apiKey,
         ...options.headers,
       },
     };
