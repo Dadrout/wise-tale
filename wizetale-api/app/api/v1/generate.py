@@ -654,8 +654,8 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
         # Return the final result without updating state
         return {
             'status': 'SUCCESS', 
-            'video_url': relative_video_path,
-            'audio_url': os.path.join(user_id, "audio.mp3"),
+            'video_url': f"/static/{relative_video_path}",
+            'audio_url': f"/static/{os.path.join(user_id, 'audio.mp3')}",
             'script': story,
             'images_used': image_urls
         }
