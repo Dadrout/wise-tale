@@ -49,6 +49,9 @@ services:
       - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
     volumes:
       - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
     # volumes:
     #   - ./wizetale-api:/app
 
@@ -75,6 +78,9 @@ services:
     volumes:
       - ./wizetale-api:/app
       - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
 
   # Frontend service
   frontend:
