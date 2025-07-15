@@ -29,6 +29,11 @@ export interface GenerationStatus {
   url: string;
 }
 
+export interface FeedbackRequest {
+  email?: string;
+  message: string;
+}
+
 class ApiService {
   private baseUrl: string;
 
@@ -116,6 +121,14 @@ class ApiService {
     }
     
     throw new Error('Generation timeout - maximum attempts reached');
+  }
+
+  // Submit feedback
+  async submitFeedback(feedback: FeedbackRequest): Promise<void> {
+    return this.request<void>('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(feedback),
+    });
   }
 }
 

@@ -157,6 +157,13 @@ const translations: Record<Language, any> = {
     loginButton: "Sign in",
     loginRegisterPrompt: "Don't have an account?",
     loginRegisterLink: "Sign up",
+    // Feedback Form
+    feedbackEmailPlaceholder: "Email (optional)",
+    feedbackMessagePlaceholder: "Your feedback, ideas or bugs...",
+    feedbackSending: "Sending...",
+    feedbackThankYou: "Thank you!",
+    feedbackSendButton: "Send Feedback",
+    feedbackError: "Failed to send. Please try again later.",
   },
   ru: {
     // Header
@@ -311,6 +318,13 @@ const translations: Record<Language, any> = {
     loginButton: "Войти",
     loginRegisterPrompt: "Нет аккаунта?",
     loginRegisterLink: "Зарегистрироваться",
+    // Feedback Form
+    feedbackEmailPlaceholder: "Email (необязательно)",
+    feedbackMessagePlaceholder: "Ваш отзыв, идеи или ошибки...",
+    feedbackSending: "Отправка...",
+    feedbackThankYou: "Спасибо!",
+    feedbackSendButton: "Отправить отзыв",
+    feedbackError: "Не удалось отправить. Попробуйте позже.",
   },
 };
 

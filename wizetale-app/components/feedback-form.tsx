@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { addDoc, collection, serverTimestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/hooks/use-language"
 import { trackEvent } from "@/lib/analytics"
+import { apiService } from "@/lib/api"
 
 export default function FeedbackForm() {
   const { t } = useLanguage()
@@ -20,10 +19,9 @@ export default function FeedbackForm() {
     if (!message.trim()) return
     setStatus("sending")
     try {
-      await addDoc(collection(db, "feedback"), {
-        email: email || null,
+      await apiService.submitFeedback({
+        email: email || undefined,
         message,
-        createdAt: serverTimestamp(),
       })
       trackEvent('feedback_submitted')
       setStatus("sent")
@@ -41,13 +39,13 @@ export default function FeedbackForm() {
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-lg mx-auto">
       <Input
         type="email"
-        placeholder="Email (optional)"
+        placeholder={t.feedbackEmailPlaceholder}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className="bg-white/80 dark:bg-gray-800/60"
       />
       <Textarea
-        placeholder="Your feedback, ideas or bugs..."
+        placeholder={t.feedbackMessagePlaceholder}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         required
@@ -59,10 +57,10 @@ export default function FeedbackForm() {
         disabled={status === "sending"}
         className="w-full bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white font-semibold"
       >
-        {status === "sending" ? "Sending..." : status === "sent" ? "Thank you!" : "Send Feedback"}
+        {status === "sending" ? t.feedbackSending : status === "sent" ? t.feedbackThankYou : t.feedbackSendButton}
       </Button>
       {status === "error" && (
-        <p className="text-red-500 text-sm text-center">Failed to send. Please try again later.</p>
+        <p className="text-red-500 text-sm text-center">{t.feedbackError}</p>
       )}
     </form>
   )
