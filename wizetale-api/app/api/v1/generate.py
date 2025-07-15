@@ -169,7 +169,7 @@ class VideoGenerationPipeline:
                 f.write(f"{self._seconds_to_srt_time(start_time)} --> {self._seconds_to_srt_time(end_time)}\n")
                 f.write(f"{phrase}\n\n")
     
-    async def generate_story_text(self, subject: str, topic: str, language: str = "en-US") -> str:
+    def generate_story_text(self, subject: str, topic: str, language: str = "en-US") -> str:
         logger.info(f"Generating story text in {language} with Azure OpenAI...")
         try:
             client = AzureOpenAI(
@@ -225,71 +225,66 @@ IMPORTANT: The entire story must be in {language}.
             logger.error(f"Azure OpenAI text generation failed in {language}: {e}", exc_info=True)
             raise
 
-    async def generate_audio_from_text(self, text: str, voice: str = "female", language: str = "en-US") -> tuple[str, float]:
+    def generate_audio_from_text(self, text: str, voice: str = "female", language: str = "en-US") -> tuple[str, float]:
         logger.info(f"Generating audio in {language} with Azure Speech Service, voice '{voice}'...")
+        try:
+            speech_config = speechsdk.SpeechConfig(subscription=settings.AZURE_SPEECH_KEY, region=settings.AZURE_SPEECH_REGION)
+            
+            # Set the output audio format for higher quality
+            speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3)
+            
+            # Select voice based on user choice
+            if voice.lower() == 'male':
+                voice_name = "en-US-BrianMultilingualNeural"
+            else: # Default to female
+                voice_name = "en-US-EmmaMultilingualNeural"
 
-        def _synthesize_sync():
-            try:
-                speech_config = speechsdk.SpeechConfig(subscription=settings.AZURE_SPEECH_KEY, region=settings.AZURE_SPEECH_REGION)
-                
-                # Set the output audio format for higher quality
-                speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3)
-                
-                # Select voice based on user choice
-                if voice.lower() == 'male':
-                    voice_name = "en-US-BrianMultilingualNeural"
-                else: # Default to female
-                    voice_name = "en-US-EmmaMultilingualNeural"
+            speech_config.speech_synthesis_voice_name = voice_name
 
-                speech_config.speech_synthesis_voice_name = voice_name
-
-                # The user-specific directory will be created in the main task
-                # Here we just ensure the base audio dir exists, though it's redundant
-                # if the main task logic is correct.
-                audio_file_path = self.temp_dir / f"{uuid4().hex}.mp3"
-                
-                file_config = speechsdk.audio.AudioOutputConfig(filename=str(audio_file_path))
-                speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=file_config)
-                
-                # Using SSML to control the style of the speech and set language
-                # The "storytelling" style is removed as it's not supported by all languages in multilingual voices.
-                ssml_text = f"""
+            # The user-specific directory will be created in the main task
+            # Here we just ensure the base audio dir exists, though it's redundant
+            # if the main task logic is correct.
+            audio_file_path = self.temp_dir / f"{uuid4().hex}.mp3"
+            
+            file_config = speechsdk.audio.AudioOutputConfig(filename=str(audio_file_path))
+            speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=file_config)
+            
+            # Using SSML to control the style of the speech and set language
+            # The "storytelling" style is removed as it's not supported by all languages in multilingual voices.
+            ssml_text = f"""
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="{language}">
     <voice name="{voice_name}">
         {text}
     </voice>
 </speak>
 """
-                result = speech_synthesizer.speak_ssml_async(ssml_text).get()
+            result = speech_synthesizer.speak_ssml_async(ssml_text).get()
+            
+            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                # For MP3, we can't use `wave` to get duration. Let's estimate or use another tool if needed.
+                # A simpler approach is to rely on the SDK if it provides it, or a library like mutagen.
+                # For now, we will use a rough estimation or leave it for a proper library later.
+                # Let's use `ffprobe` as a reliable way to get duration.
+                try:
+                    cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_file_path)]
+                    duration_str = subprocess.check_output(cmd).decode('utf-8').strip()
+                    duration = float(duration_str)
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    # Fallback estimation if ffprobe is not available
+                    audio_data = result.audio_data
+                    duration = len(audio_data) / (24000 * 2) # A rough estimate for 24kHz, 16-bit mono
                 
-                if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-                    # For MP3, we can't use `wave` to get duration. Let's estimate or use another tool if needed.
-                    # A simpler approach is to rely on the SDK if it provides it, or a library like mutagen.
-                    # For now, we will use a rough estimation or leave it for a proper library later.
-                    # Let's use `ffprobe` as a reliable way to get duration.
-                    try:
-                        cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_file_path)]
-                        duration_str = subprocess.check_output(cmd).decode('utf-8').strip()
-                        duration = float(duration_str)
-                    except (subprocess.CalledProcessError, FileNotFoundError):
-                        # Fallback estimation if ffprobe is not available
-                        audio_data = result.audio_data
-                        duration = len(audio_data) / (24000 * 2) # A rough estimate for 24kHz, 16-bit mono
-                    
-                    logger.info(f"Audio generation successful. File: {audio_file_path}, Duration: {duration:.2f}s, Language: {language}")
-                    return str(audio_file_path), duration
-                else:
-                    error_details = result.cancellation_details
-                    logger.error(f"Audio synthesis failed: {result.reason}. Details: {error_details}")
-                    raise Exception(f"Audio synthesis failed: {result.reason}. Details: {error_details}")
-            except Exception as e:
-                logger.error(f"Azure Speech audio generation failed: {e}", exc_info=True)
-                raise
+                logger.info(f"Audio generation successful. File: {audio_file_path}, Duration: {duration:.2f}s, Language: {language}")
+                return str(audio_file_path), duration
+            else:
+                error_details = result.cancellation_details
+                logger.error(f"Audio synthesis failed: {result.reason}. Details: {error_details}")
+                raise Exception(f"Audio synthesis failed: {result.reason}. Details: {error_details}")
+        except Exception as e:
+            logger.error(f"Azure Speech audio generation failed: {e}", exc_info=True)
+            raise
 
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _synthesize_sync)
-
-    async def _generate_prompts_from_story(self, story_text: str, topic: str, count: int, language: str = "en-US") -> list[str]:
+    def _generate_prompts_from_story(self, story_text: str, topic: str, count: int, language: str = "en-US") -> list[str]:
         logger.info(f"Generating {count} image prompts from story text in {language}...")
         try:
             client = AzureOpenAI(
@@ -351,7 +346,9 @@ Create a single image prompt that captures the story's essence (in English):
                     story_chunks = paragraphs  # may be fewer than count; caller will still request same amount
 
                 # Step 2: Generate a prompt for each scene
-                tasks = []
+                # This part needs to be synchronous. We'll make requests one by one.
+                # In a high-throughput system, we might use threads, but for a single Celery task, sequential is safer.
+                prompts = []
                 for chunk in story_chunks:
                     prompt_generation_prompt = f"""
 Based on the following story segment about '{topic}' (written in {language}), create a single, concise, and vivid prompt for an AI image generator.
@@ -364,29 +361,23 @@ Story Segment:
 
 Prompt (in English):
 """
-                    task = client.chat.completions.create(
-                        model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
-                        messages=[{"role": "user", "content": prompt_generation_prompt}],
-                        temperature=0.7,
-                        max_tokens=150
-                    )
-                    tasks.append(task)
-                
-                # Use asyncio.gather with to_thread to run blocking calls concurrently
-                prompt_responses = []
-                for task in tasks:
                     try:
-                        response = task.choices[0].message.content
-                        if response:
-                            prompt_responses.append(response.strip().replace('"', ''))
+                        response = client.chat.completions.create(
+                            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+                            messages=[{"role": "user", "content": prompt_generation_prompt}],
+                            temperature=0.7,
+                            max_tokens=150
+                        )
+                        prompt = response.choices[0].message.content
+                        if prompt:
+                            prompts.append(prompt.strip().replace('"', ''))
                         else:
                             logger.warning("OpenAI returned empty response for prompt generation")
-                            prompt_responses.append(f"A cinematic scene about {topic}")
+                            prompts.append(f"A cinematic scene about {topic}")
                     except Exception as e:
-                        logger.error(f"Error processing OpenAI response: {e}")
-                        prompt_responses.append(f"A cinematic scene about {topic}")
+                        logger.error(f"Error calling OpenAI for prompt generation: {e}")
+                        prompts.append(f"A cinematic scene about {topic}")
                 
-                prompts = list(prompt_responses)
                 logger.info(f"Successfully generated {len(prompts)} prompts: {prompts}")
                 return prompts
                 
@@ -395,28 +386,30 @@ Prompt (in English):
             return [f"A cinematic scene about {topic}" for _ in range(count)]
 
 
-    async def generate_images_ai(self, topic: str, subject: str, story: str, count: int = 1, language: str = "en-US") -> list[str]:
+    def generate_images_ai(self, topic: str, subject: str, story: str, count: int = 1, language: str = "en-US") -> list[str]:
         logger.info(f"Generating {count} AI images for '{topic}'...")
         
-        image_prompts = await self._generate_prompts_from_story(story, topic, count, language)
+        image_prompts = self._generate_prompts_from_story(story, topic, count, language)
         if not image_prompts:
             logger.warning("Could not generate prompts from story, falling back to Pexels.")
-            return await self.search_images_pexels_fallback(topic, subject, story, count)
+            return self.search_images_pexels_fallback(topic, subject, story, count)
 
-        ai_images = await runware_service.generate_images_from_prompts(image_prompts)
+        # runware_service.generate_images_from_prompts is async, so we must run it in an event loop
+        ai_images = asyncio.run(runware_service.generate_images_from_prompts(image_prompts))
         
         if ai_images and len(ai_images) >= count // 2:
             logger.info(f"Successfully generated {len(ai_images)} images with Runware.")
             return ai_images
         
         logger.warning("Runware image generation failed or returned too few images, falling back to Pexels.")
-        return await self.search_images_pexels_fallback(topic, subject, story, count)
+        return self.search_images_pexels_fallback(topic, subject, story, count)
 
-    async def search_images_pexels_fallback(self, topic: str, subject: str, story_text: str = "", count: int = 8) -> list[str]:
+    def search_images_pexels_fallback(self, topic: str, subject: str, story_text: str = "", count: int = 8) -> list[str]:
         logger.warning("Falling back to Pexels for image search.")
         try:
             pexels_query = f"{topic} {subject}"
-            images_data = await firebase_service.search_images(pexels_query, per_page=count)
+            # Assuming firebase_service is synchronous
+            images_data = firebase_service.search_images(pexels_query, per_page=count)
             if images_data:
                 urls = [img['url'] for img in images_data if 'url' in img]
                 logger.info(f"Found {len(urls)} images from Pexels fallback.")
@@ -426,7 +419,7 @@ Prompt (in English):
             logger.error(f"Pexels fallback failed: {e}", exc_info=True)
             return []
             
-    async def download_image(self, url: str, path: Path) -> bool:
+    def download_image(self, url: str, path: Path) -> bool:
         try:
             response = requests.get(url, stream=True, timeout=20)
             response.raise_for_status()
@@ -462,7 +455,7 @@ Prompt (in English):
         chunk_word_len = math.ceil(len(words) / n_chunks)
         return [" ".join(words[i:i + chunk_word_len]) for i in range(0, len(words), chunk_word_len)][:n_chunks]
 
-    async def create_video_slideshow(self, audio_path: str, audio_duration: float, images: list[str], transcript: str, task_instance=None) -> str:
+    def create_video_slideshow(self, audio_path: str, audio_duration: float, images: list[str], transcript: str, task_instance=None) -> str:
         if not images:
             logger.error("No images provided for video slideshow.")
             raise ValueError("Cannot create video without images.")
@@ -533,52 +526,50 @@ Prompt (in English):
             logger.info("Running ffmpeg command to create video...")
             logger.debug(f"FFMPEG command: {' '.join(ffmpeg_cmd)}")
             
-            process = await asyncio.create_subprocess_exec(
-                *ffmpeg_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            # Replace asyncio.subprocess with synchronous subprocess.run
+            process = subprocess.run(
+                ffmpeg_cmd,
+                capture_output=True,
+                text=True,
+                check=False # We check the returncode manually
             )
 
-            time_regex = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
-            
-            last_reported_progress = -1
-            async for line in process.stderr:
-                line_str = line.decode('utf-8').strip()
-                match = time_regex.search(line_str)
-                if match:
-                    hours, mins, secs, ms = map(int, match.groups())
-                    processed_time = hours * 3600 + mins * 60 + secs + ms / 100
-                    
-                    if audio_duration > 0:
-                        # Map ffmpeg processing (85-95%) to overall progress
-                        progress = 85 + int((processed_time / audio_duration) * 10)
-                        progress = min(progress, 95)
+            # --- Progress reporting from stderr ---
+            if process.stderr:
+                time_regex = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+                last_reported_progress = -1
+                for line in process.stderr.splitlines():
+                    match = time_regex.search(line)
+                    if match:
+                        hours, mins, secs, ms = map(int, match.groups())
+                        processed_time = hours * 3600 + mins * 60 + secs + ms / 100
                         
-                        if task_instance and progress > last_reported_progress:
-                            logger.info(f"FFMPEG progress: {progress}% (processed {processed_time:.2f}s / {audio_duration:.2f}s)")
-                            task_instance.update_state(
-                                state='PROGRESS',
-                                meta={'progress': progress, 'message': f'Rendering video... {progress}%', 'step': 'video_creation'}
-                            )
-                            last_reported_progress = progress
-                else:
-                    # Log other stderr output for debugging
-                    if line_str:
-                        logger.debug(f"ffmpeg_stderr: {line_str}")
+                        if audio_duration > 0:
+                            progress = 85 + int((processed_time / audio_duration) * 10)
+                            progress = min(progress, 95)
+                            
+                            if task_instance and progress > last_reported_progress:
+                                logger.info(f"FFMPEG progress: {progress}% (processed {processed_time:.2f}s / {audio_duration:.2f}s)")
+                                task_instance.update_state(
+                                    state='PROGRESS',
+                                    meta={'progress': progress, 'message': f'Rendering video... {progress}%', 'step': 'video_creation'}
+                                )
+                                last_reported_progress = progress
+                    else:
+                        if line:
+                           logger.debug(f"ffmpeg_stderr: {line}")
+            # --- End of progress reporting ---
 
-            stdout_data = await process.stdout.read()
-            return_code = await process.wait()
-
-            if return_code != 0:
-                logger.error(f"ffmpeg failed with return code {return_code}")
-                if stdout_data:
-                    logger.error(f"ffmpeg stdout:\n{stdout_data.decode('utf-8')}")
-                # stderr was already consumed and logged
+            if process.returncode != 0:
+                logger.error(f"ffmpeg failed with return code {process.returncode}")
+                logger.error(f"ffmpeg stderr:\n{process.stderr}")
+                if process.stdout:
+                    logger.error(f"ffmpeg stdout:\n{process.stdout}")
                 raise RuntimeError(f"ffmpeg failed to create video. Check logs for details.")
             else:
                 logger.info("ffmpeg command completed successfully.")
-                if stdout_data:
-                    logger.debug(f"ffmpeg stdout:\n{stdout_data.decode('utf-8')}")
+                if process.stdout:
+                    logger.debug(f"ffmpeg stdout:\n{process.stdout}")
             
             return str(output_video_path)
         finally:
@@ -591,11 +582,8 @@ Prompt (in English):
 def generate_story_video_task(self, request_data: dict, user_id: str):
     """
     Celery task to generate a story video.
-    This task is now fully synchronous internally to avoid event loop conflicts.
+    This task is now fully synchronous.
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     temp_dir_str = None
     try:
         with tempfile.TemporaryDirectory() as temp_dir_str:
@@ -610,7 +598,7 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
 
             # Step 1: Text generation (0-20%)
             self.update_state(state='PROGRESS', meta={'progress': 5, 'message': 'Generating story text...', 'step': 'text_generation'})
-            story = loop.run_until_complete(pipeline.generate_story_text(subject, topic, language))
+            story = pipeline.generate_story_text(subject, topic, language)
             self.update_state(state='PROGRESS', meta={'progress': 20, 'message': 'Story text generated successfully!', 'step': 'text_generation'})
 
             # Determine the number of images based on story length (number of paragraphs)
@@ -620,12 +608,12 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
 
             # Step 2: Audio generation (20-40%)
             self.update_state(state='PROGRESS', meta={'progress': 25, 'message': 'Generating audio narration...', 'step': 'audio_generation'})
-            audio_path, audio_duration = loop.run_until_complete(pipeline.generate_audio_from_text(story, voice, language))
+            audio_path, audio_duration = pipeline.generate_audio_from_text(story, voice, language)
             self.update_state(state='PROGRESS', meta={'progress': 40, 'message': 'Audio narration completed!', 'step': 'audio_generation'})
             
             # Step 3: Image generation (40-60%)
             self.update_state(state='PROGRESS', meta={'progress': 45, 'message': f'Generating {image_count} images for the story...', 'step': 'image_generation'})
-            image_urls = loop.run_until_complete(pipeline.generate_images_ai(topic, subject, story, count=image_count, language=language))
+            image_urls = pipeline.generate_images_ai(topic, subject, story, count=image_count, language=language)
             if not image_urls:
                 raise ValueError("Failed to generate or find any images for the story.")
             self.update_state(state='PROGRESS', meta={'progress': 60, 'message': f'Generated {len(image_urls)} images!', 'step': 'image_generation'})
@@ -634,11 +622,9 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
             self.update_state(state='PROGRESS', meta={'progress': 65, 'message': 'Downloading images...', 'step': 'image_download'})
             downloaded_images = []
             
-            # Create a list of coroutines to run concurrently
-            download_tasks = [pipeline.download_image(url, temp_dir_path / f"image_{i}.jpg") for i, url in enumerate(image_urls)]
-            results = loop.run_until_complete(asyncio.gather(*download_tasks))
-            
-            for i, success in enumerate(results):
+            # Download images sequentially
+            for i, url in enumerate(image_urls):
+                success = pipeline.download_image(url, temp_dir_path / f"image_{i}.jpg")
                 if success:
                     downloaded_images.append(str(temp_dir_path / f"image_{i}.jpg"))
 
@@ -649,13 +635,13 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
 
             # Step 5: Video creation (80-100%)
             self.update_state(state='PROGRESS', meta={'progress': 85, 'message': 'Creating video with subtitles...', 'step': 'video_creation'})
-            video_path = loop.run_until_complete(pipeline.create_video_slideshow(
+            video_path = pipeline.create_video_slideshow(
                 audio_path=audio_path,
                 audio_duration=audio_duration,
                 images=downloaded_images,
                 transcript=story,
                 task_instance=self
-            ))
+            )
             
             self.update_state(state='PROGRESS', meta={'progress': 95, 'message': 'Finalizing video...', 'step': 'video_creation'})
 
@@ -672,7 +658,7 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
             }
             
     finally:
-        loop.close()
+        # No need to close a loop anymore
         if temp_dir_str:
              logger.info(f"Temporary directory {temp_dir_str} and its contents have been removed.")
 
