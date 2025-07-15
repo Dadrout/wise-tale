@@ -39,6 +39,8 @@ services:
       - redis
       - postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - RUNWARE_API_KEY=Tr78HtnWmM1OtFhMROf9MQJBViFHcYgY
       - REDIS_URL=redis://redis:6379/0
@@ -61,6 +63,8 @@ services:
       - redis
       - postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
