@@ -55,7 +55,12 @@ export const useStoryGenerator = () => {
           if (data.status === 'SUCCESS') {
             clearInterval(interval)
             
-            const fullVideoUrl = data.result?.video_url ? `${API_URL}/static/${data.result.video_url}` : undefined;
+            let fullVideoUrl: string | undefined = data.result?.video_url;
+            // If API already returns an absolute path (starts with '/'), use it directly
+            // Otherwise, prefix with API_URL + '/static/' to form the full URL
+            if (fullVideoUrl && !fullVideoUrl.startsWith('/')) {
+              fullVideoUrl = `${API_URL}/static/${fullVideoUrl}`;
+            }
 
             resolve({
               id: taskId,
