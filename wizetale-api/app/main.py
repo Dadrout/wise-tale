@@ -73,6 +73,19 @@ static_dir = Path("static")
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+# Mount directories for generated files
+generated_videos_dir = Path("generated_videos")
+generated_videos_dir.mkdir(exist_ok=True)
+app.mount("/generated_videos", StaticFiles(directory=str(generated_videos_dir)), name="generated_videos")
+
+generated_audio_dir = Path("generated_audio")
+generated_audio_dir.mkdir(exist_ok=True)
+app.mount("/generated_audio", StaticFiles(directory=str(generated_audio_dir)), name="generated_audio")
+
+generated_images_dir = Path("generated_images")
+generated_images_dir.mkdir(exist_ok=True)
+app.mount("/generated_images", StaticFiles(directory=str(generated_images_dir)), name="generated_images")
+
 @app.get("/static/{user_id}/{video_name}")
 async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
     video_path = static_dir / user_id / video_name
