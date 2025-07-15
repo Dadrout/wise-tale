@@ -36,4 +36,48 @@ export const trackUserEngagement = (engagement_time_msec: number) => {
       engagement_time_msec,
     });
   }
+};
+
+// Track conversion events
+export const trackConversion = (conversion_type: string, value?: number, currency?: string) => {
+  if (analytics) {
+    logEvent(analytics, 'conversion', {
+      conversion_type,
+      value,
+      currency: currency || 'USD',
+    });
+  }
+};
+
+// Track funnel steps
+export const trackFunnelStep = (step_name: string, step_number: number, total_steps: number) => {
+  if (analytics) {
+    logEvent(analytics, 'funnel_step', {
+      step_name,
+      step_number,
+      total_steps,
+      progress_percentage: Math.round((step_number / total_steps) * 100),
+    });
+  }
+};
+
+// Track user journey
+export const trackUserJourney = (journey_step: string, time_spent?: number) => {
+  if (analytics) {
+    logEvent(analytics, 'user_journey', {
+      journey_step,
+      time_spent,
+      timestamp: Date.now(),
+    });
+  }
+};
+
+// Track feature usage
+export const trackFeatureUsage = (feature_name: string, usage_count?: number) => {
+  if (analytics) {
+    logEvent(analytics, 'feature_usage', {
+      feature_name,
+      usage_count: usage_count || 1,
+    });
+  }
 }; 

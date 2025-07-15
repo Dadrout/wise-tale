@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useAuth } from './use-auth'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent, trackConversion, trackFunnelStep } from '@/lib/analytics'
 import { useToast } from './use-toast';
 
 const API_URL = '/api/v1';
@@ -130,9 +130,19 @@ export const useStoryGenerator = () => {
       }
 
       const task = await response.json()
+      
+      // Track funnel step - story generation started
+      trackFunnelStep('story_generation_started', 1, 3)
+      
       const generationResult = await pollTask(task.task_id)
       setResult(generationResult)
+      
+      // Track successful conversion
+      trackConversion('story_generated', 1)
       trackEvent('generate_story', { id: task.task_id })
+      
+      // Track funnel completion
+      trackFunnelStep('story_generation_completed', 3, 3)
       
     } catch (e: any) {
       console.error('Generation error:', e)

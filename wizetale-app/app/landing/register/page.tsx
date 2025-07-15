@@ -140,6 +140,19 @@ export default function RegisterPage() {
         setError('')
     }
 
+    const handleGoogleSignIn = async () => {
+        try {
+            setError('')
+            await signInWithGoogle()
+            router.push('/')
+        } catch (error: any) {
+            if (error.code === 'auth/popup-closed-by-user') {
+                return // Don't show an error if the user closes the popup
+            }
+            setError('Failed to sign in with Google. Please try again.')
+        }
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-teal-50 p-4">
             <Card className="w-full max-w-md">
@@ -282,19 +295,33 @@ export default function RegisterPage() {
                             )}
                         </Button>
                     </form>
-                </CardContent>
-                <div className="mt-4 text-center text-sm">
-                    <Button type="button" onClick={signInWithGoogle} variant="outline" className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm mt-2">
+
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <Button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                        disabled={loading}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 533.5 544.3" className="w-4 h-4"><path fill="#4285F4" d="M533.5 278.4c0-17.2-1.3-34.5-4-51.3H272v97.2h146.9c-6.4 34.3-25 63.6-53.2 83.1v68h85.7c50.3-46.3 78.1-114.5 78.1-197z"/><path fill="#34A853" d="M272 544.3c71.6 0 131.7-23.6 175.6-64.3l-85.7-68c-23.8 15.9-54.3 25.2-89.9 25.2-68.9 0-127.4-46.5-148.4-109.2h-88.4v68.8C83.2 483.3 171.9 544.3 272 544.3z"/><path fill="#FBBC05" d="M123.6 324.2c-5.3-15.9-8.3-32.8-8.3-50.2s3-34.3 8.3-50.2v-68.8H35.2C12.6 200.5 0 236.3 0 274s12.6 73.5 35.2 119l88.4-68.8z"/><path fill="#EA4335" d="M272 107.7c38.8 0 73.4 13.3 100.8 39.5l75.6-75.6C403.7 29.6 343.6 0 272 0 171.9 0 83.2 61 35.2 155l88.4 68.8c21-62.7 79.5-116.1 148.4-116.1z"/></svg>
                         Sign up with Google
                     </Button>
-                    <p className="mt-4 text-gray-600">
+
+                    <p className="mt-6 text-center text-sm text-gray-600">
                         Already have an account?{' '}
                         <Link href="/landing/login" className="text-purple-600 hover:underline">
                             Sign in
                         </Link>
                     </p>
-                </div>
+                </CardContent>
             </Card>
         </div>
     )

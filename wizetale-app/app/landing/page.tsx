@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,6 +23,8 @@ import {
   Wand2,
   Volume2,
   Brain,
+  Menu,
+  X,
 } from "lucide-react"
 import { YouTubeEmbed } from "@/components/youtube-embed"
 import { useLanguage } from "@/hooks/use-language"
@@ -48,6 +51,7 @@ function ThemeToggle() {
 
 export default function LandingPage() {
   const { t } = useLanguage()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
     <>
@@ -113,7 +117,52 @@ export default function LandingPage() {
                   </Link>
                 </ScrollReveal>
               </div>
+              <div className="md:hidden">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400"
+                >
+                  {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </div>
             </nav>
+            {isMenuOpen && (
+              <div className="md:hidden mt-4 bg-white/80 dark:bg-gray-800/80 p-4 rounded-lg shadow-lg">
+                <div className="flex flex-col space-y-4">
+                  {[
+                    { name: t.features, href: "#features" },
+                    { name: t.pricing, href: "#pricing" },
+                    { name: t.howItWorks, href: "#how-it-works" },
+                    { name: t.stories, href: "#testimonials" },
+                  ].map((item) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item.name}
+                    </a>
+                  ))}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <LanguageSwitcher />
+                    <ThemeToggle />
+                  </div>
+                  <Link href="/register" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {t.signIn}
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </ScrollReveal>
         </header>
 

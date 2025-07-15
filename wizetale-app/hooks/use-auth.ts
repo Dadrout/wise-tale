@@ -15,11 +15,12 @@ import {
   updateProfile
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent, trackConversion, trackFunnelStep } from '@/lib/analytics'
 import { 
   createUserProfile, 
   getUserProfile, 
   checkUserProfileExists,
+  updateUserProfile,
   UserProfile 
 } from '@/lib/user-service'
 
@@ -104,6 +105,7 @@ export const useAuthState = () => {
       setUserProfile(profile)
       
       trackEvent('login_email')
+      trackConversion('user_logged_in', 1)
     } catch (error) {
       console.error('Sign in error:', error)
       throw error
@@ -144,6 +146,8 @@ export const useAuthState = () => {
       setUserProfile(profile)
       
       trackEvent('sign_up_email')
+      trackConversion('user_registered', 1)
+      trackFunnelStep('registration_completed', 2, 2)
     } catch (error) {
       console.error('Sign up error:', error)
       throw error
@@ -183,11 +187,19 @@ export const useAuthState = () => {
           )
         }
         
+        // Update emailVerified status for Google users
+        if (result.user.emailVerified) {
+          await updateUserProfile(result.user.uid, {
+            emailVerified: true
+          })
+        }
+        
         // Load user profile
         const profile = await getUserProfile(result.user.uid)
         setUserProfile(profile)
         
         trackEvent('login_google')
+        trackConversion('user_logged_in', 1)
       } catch (popupError: any) {
         // If popup blocked or COOP error, fall back to redirect
         if (popupError.code === 'auth/popup-blocked' || 
@@ -234,13 +246,16 @@ export const useAuthState = () => {
   }
 
   const refreshUserProfile = async () => {
-    if (user) {
-      const profile = await getUserProfile(user.uid)
-      setUserProfile(profile)
+    if (auth.currentUser) {
+      await auth.currentUser.reload()
+      // The onAuthStateChanged listener will automatically pick up the change
+      // in emailVerified status and update the user state.
+      // It also re-fetches the user profile from Firestore.
     }
   }
 
   const logout = async () => {
+    setLoading(true)
     try {
       await signOut(auth)
       setUserProfile(null)
@@ -248,6 +263,8 @@ export const useAuthState = () => {
     } catch (error) {
       console.error('Logout error:', error)
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 

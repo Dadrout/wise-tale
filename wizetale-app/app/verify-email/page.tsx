@@ -11,37 +11,35 @@ import Image from 'next/image'
 
 export default function VerifyEmailPage() {
   const router = useRouter()
-  const { user, sendVerificationEmail, refreshUserProfile } = useAuth()
+  const { user, sendVerificationEmail, refreshUserProfile, loading: authLoading } = useAuth()
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
-    // Redirect if not logged in
-    if (!user) {
+    // Redirect if already verified
+    if (user?.emailVerified) {
+      router.push('/')
+      return
+    }
+
+    // Redirect if not logged in (once auth state is resolved)
+    if (!authLoading && !user) {
       router.push('/landing/login')
       return
     }
 
-    // Check if already verified
-    const checkVerification = async () => {
-      setChecking(true)
-      await refreshUserProfile()
-      if (user.emailVerified) {
-        router.push('/')
-      }
-      setChecking(false)
-    }
+    // Poll for verification status in the background
+    const interval = setInterval(() => {
+      refreshUserProfile()
+    }, 5000) // Check every 5 seconds
 
-    // Check every 3 seconds
-    const interval = setInterval(checkVerification, 3000)
-    
     // Initial check
-    checkVerification()
+    refreshUserProfile()
 
     return () => clearInterval(interval)
-  }, [user, router, refreshUserProfile])
+  }, [user, authLoading, router, refreshUserProfile])
 
   const handleResendEmail = async () => {
     setSending(true)
@@ -65,9 +63,7 @@ export default function VerifyEmailPage() {
   const handleRefresh = async () => {
     setChecking(true)
     await refreshUserProfile()
-    if (user?.emailVerified) {
-      router.push('/')
-    }
+    // The useEffect will handle the redirect if verification is successful
     setChecking(false)
   }
 
