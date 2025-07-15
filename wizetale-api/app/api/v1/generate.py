@@ -586,81 +586,89 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
     """
     temp_dir_str = None
     try:
-        with tempfile.TemporaryDirectory() as temp_dir_str:
-            temp_dir_path = Path(temp_dir_str)
-            pipeline = VideoGenerationPipeline(user_id=user_id, temp_dir=temp_dir_path)
-            
-            # Unpack request data for easier access
-            subject = request_data['subject']
-            topic = request_data['topic']
-            language = request_data.get('language', 'en-US')
-            voice = request_data.get('voice', 'female')
+        # Create a permanent directory for this task instead of temporary
+        temp_dir_str = f"/tmp/wizetale_task_{self.request.id}"
+        temp_dir_path = Path(temp_dir_str)
+        temp_dir_path.mkdir(exist_ok=True)
+        
+        pipeline = VideoGenerationPipeline(user_id=user_id, temp_dir=temp_dir_path)
+        
+        # Unpack request data for easier access
+        subject = request_data['subject']
+        topic = request_data['topic']
+        language = request_data.get('language', 'en-US')
+        voice = request_data.get('voice', 'female')
 
-            # Step 1: Text generation (0-20%)
-            self.update_state(state='PROGRESS', meta={'progress': 5, 'message': 'Generating story text...', 'step': 'text_generation'})
-            story = pipeline.generate_story_text(subject, topic, language)
-            self.update_state(state='PROGRESS', meta={'progress': 20, 'message': 'Story text generated successfully!', 'step': 'text_generation'})
+        # Step 1: Text generation (0-20%)
+        self.update_state(state='PROGRESS', meta={'progress': 5, 'message': 'Generating story text...', 'step': 'text_generation'})
+        story = pipeline.generate_story_text(subject, topic, language)
+        self.update_state(state='PROGRESS', meta={'progress': 20, 'message': 'Story text generated successfully!', 'step': 'text_generation'})
 
-            # Determine the number of images based on story length (number of paragraphs)
-            num_paragraphs = len([p for p in story.split('\n\n') if p.strip()])
-            image_count = max(5, min(20, num_paragraphs))  # Clamp between 5 and 20
-            logger.info(f"Story has {num_paragraphs} paragraphs, planning to generate {image_count} images.")
+        # Determine the number of images based on story length (number of paragraphs)
+        num_paragraphs = len([p for p in story.split('\n\n') if p.strip()])
+        image_count = max(5, min(20, num_paragraphs))  # Clamp between 5 and 20
+        logger.info(f"Story has {num_paragraphs} paragraphs, planning to generate {image_count} images.")
 
-            # Step 2: Audio generation (20-40%)
-            self.update_state(state='PROGRESS', meta={'progress': 25, 'message': 'Generating audio narration...', 'step': 'audio_generation'})
-            audio_path, audio_duration = pipeline.generate_audio_from_text(story, voice, language)
-            self.update_state(state='PROGRESS', meta={'progress': 40, 'message': 'Audio narration completed!', 'step': 'audio_generation'})
-            
-            # Step 3: Image generation (40-60%)
-            self.update_state(state='PROGRESS', meta={'progress': 45, 'message': f'Generating {image_count} images for the story...', 'step': 'image_generation'})
-            image_urls = pipeline.generate_images_ai(topic, subject, story, count=image_count, language=language)
-            if not image_urls:
-                raise ValueError("Failed to generate or find any images for the story.")
-            self.update_state(state='PROGRESS', meta={'progress': 60, 'message': f'Generated {len(image_urls)} images!', 'step': 'image_generation'})
+        # Step 2: Audio generation (20-40%)
+        self.update_state(state='PROGRESS', meta={'progress': 25, 'message': 'Generating audio narration...', 'step': 'audio_generation'})
+        audio_path, audio_duration = pipeline.generate_audio_from_text(story, voice, language)
+        self.update_state(state='PROGRESS', meta={'progress': 40, 'message': 'Audio narration completed!', 'step': 'audio_generation'})
+        
+        # Step 3: Image generation (40-60%)
+        self.update_state(state='PROGRESS', meta={'progress': 45, 'message': f'Generating {image_count} images for the story...', 'step': 'image_generation'})
+        image_urls = pipeline.generate_images_ai(topic, subject, story, count=image_count, language=language)
+        if not image_urls:
+            raise ValueError("Failed to generate or find any images for the story.")
+        self.update_state(state='PROGRESS', meta={'progress': 60, 'message': f'Generated {len(image_urls)} images!', 'step': 'image_generation'})
 
-            # Step 4: Image download (60-80%)
-            self.update_state(state='PROGRESS', meta={'progress': 65, 'message': 'Downloading images...', 'step': 'image_download'})
-            downloaded_images = []
-            
-            # Download images sequentially
-            for i, url in enumerate(image_urls):
-                success = pipeline.download_image(url, temp_dir_path / f"image_{i}.jpg")
-                if success:
-                    downloaded_images.append(str(temp_dir_path / f"image_{i}.jpg"))
+        # Step 4: Image download (60-80%)
+        self.update_state(state='PROGRESS', meta={'progress': 65, 'message': 'Downloading images...', 'step': 'image_download'})
+        downloaded_images = []
+        
+        # Download images sequentially
+        for i, url in enumerate(image_urls):
+            success = pipeline.download_image(url, temp_dir_path / f"image_{i}.jpg")
+            if success:
+                downloaded_images.append(str(temp_dir_path / f"image_{i}.jpg"))
 
-            if not downloaded_images:
-                raise Exception("Failed to download any images for the video.")
-            
-            self.update_state(state='PROGRESS', meta={'progress': 80, 'message': f'Downloaded {len(downloaded_images)} images successfully!', 'step': 'image_download'})
+        if not downloaded_images:
+            raise Exception("Failed to download any images for the video.")
+        
+        self.update_state(state='PROGRESS', meta={'progress': 80, 'message': f'Downloaded {len(downloaded_images)} images successfully!', 'step': 'image_download'})
 
-            # Step 5: Video creation (80-100%)
-            self.update_state(state='PROGRESS', meta={'progress': 85, 'message': 'Creating video with subtitles...', 'step': 'video_creation'})
-            video_path = pipeline.create_video_slideshow(
-                audio_path=audio_path,
-                audio_duration=audio_duration,
-                images=downloaded_images,
-                transcript=story,
-                task_instance=self
-            )
-            
-            self.update_state(state='PROGRESS', meta={'progress': 95, 'message': 'Finalizing video...', 'step': 'video_creation'})
+        # Step 5: Video creation (80-100%)
+        self.update_state(state='PROGRESS', meta={'progress': 85, 'message': 'Creating video with subtitles...', 'step': 'video_creation'})
+        video_path = pipeline.create_video_slideshow(
+            audio_path=audio_path,
+            audio_duration=audio_duration,
+            images=downloaded_images,
+            transcript=story,
+            task_instance=self
+        )
+        
+        self.update_state(state='PROGRESS', meta={'progress': 95, 'message': 'Finalizing video...', 'step': 'video_creation'})
 
-            relative_video_path = os.path.join(user_id, "video.mp4")
-            logger.info(f"Task {self.request.id} completed. Video available at: {relative_video_path}")
-            
-            # Return the final result without updating state
-            return {
-                'status': 'SUCCESS', 
-                'video_url': relative_video_path,
-                'audio_url': os.path.join(user_id, "audio.mp3"),
-                'script': story,
-                'images_used': image_urls
-            }
+        relative_video_path = os.path.join(user_id, "video.mp4")
+        logger.info(f"Task {self.request.id} completed. Video available at: {relative_video_path}")
+        
+        # Return the final result without updating state
+        return {
+            'status': 'SUCCESS', 
+            'video_url': relative_video_path,
+            'audio_url': os.path.join(user_id, "audio.mp3"),
+            'script': story,
+            'images_used': image_urls
+        }
             
     finally:
-        # No need to close a loop anymore
-        if temp_dir_str:
-             logger.info(f"Temporary directory {temp_dir_str} and its contents have been removed.")
+        # Clean up temporary files but keep the generated files in static directory
+        if temp_dir_str and Path(temp_dir_str).exists():
+            import shutil
+            try:
+                shutil.rmtree(temp_dir_str)
+                logger.info(f"Temporary directory {temp_dir_str} and its contents have been removed.")
+            except Exception as e:
+                logger.warning(f"Failed to remove temporary directory {temp_dir_str}: {e}")
 
 
 @router.post("/generate", response_model=TaskCreationResponse, status_code=202, dependencies=[Depends(verify_api_key)])
