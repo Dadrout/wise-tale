@@ -76,7 +76,6 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
     volumes:
-      - ./wizetale-api:/app
       - static_files:/app/static
       - ./wizetale-api/generated_audio:/app/generated_audio
       - ./wizetale-api/generated_images:/app/generated_images
