@@ -65,11 +65,15 @@ export const useAuthState = () => {
         // If profile doesn't exist (e.g., after Google sign-in), create a basic one
         if (!profile && firebaseUser.email) {
           const username = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '')
+          const providerId = firebaseUser.providerData.length > 0 ? 
+            firebaseUser.providerData[0].providerId : 'password'
+          
           await createUserProfile(
             firebaseUser.uid,
             firebaseUser.email,
             username,
-            firebaseUser.displayName || undefined
+            firebaseUser.displayName || undefined,
+            providerId
           )
           const newProfile = await getUserProfile(firebaseUser.uid)
           setUserProfile(newProfile)
@@ -135,7 +139,8 @@ export const useAuthState = () => {
         result.user.uid,
         email,
         username,
-        displayName
+        displayName,
+        'password' // Указываем, что это регистрация через email/password
       )
       
       // Send verification email
@@ -183,12 +188,19 @@ export const useAuthState = () => {
             result.user.uid,
             result.user.email,
             username,
-            result.user.displayName || undefined
+            result.user.displayName || undefined,
+            'google.com' // Указываем, что это Google аутентификация
           )
         }
         
         // Update emailVerified status for Google users
         if (result.user.emailVerified) {
+          await updateUserProfile(result.user.uid, {
+            emailVerified: true
+          })
+        } else if (result.user.providerData.length > 0 && 
+                   result.user.providerData[0].providerId === 'google.com') {
+          // Google пользователи автоматически верифицированы
           await updateUserProfile(result.user.uid, {
             emailVerified: true
           })

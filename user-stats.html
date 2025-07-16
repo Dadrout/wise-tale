@@ -296,7 +296,8 @@
                         displayName: data.displayName || data.username || 'N/A',
                         emailVerified: data.emailVerified || false,
                         createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
-                        updatedAt: data.updatedAt ? data.updatedAt.toDate() : new Date()
+                        updatedAt: data.updatedAt ? data.updatedAt.toDate() : new Date(),
+                        providerId: data.providerId || null // Добавляем информацию о провайдере
                     });
                 });
 
@@ -348,9 +349,27 @@
             }
 
             const usersHTML = users.map(user => {
-                const isGoogle = user.email.includes('@gmail.com') || user.email.includes('@googlemail.com');
-                const method = isGoogle ? 'Google' : 'Email';
-                const methodClass = isGoogle ? 'method-google' : 'method-email';
+                // Определяем метод входа по реальным данным
+                let method = 'Email'; // по умолчанию
+                let methodClass = 'method-email';
+                
+                // Если есть providerId, используем его для определения метода
+                if (user.providerId) {
+                    if (user.providerId === 'google.com') {
+                        method = 'Google';
+                        methodClass = 'method-google';
+                    } else if (user.providerId === 'password') {
+                        method = 'Email';
+                        methodClass = 'method-email';
+                    }
+                } else {
+                    // Fallback: определяем по дополнительным признакам
+                    if (user.displayName && user.displayName !== user.username && 
+                        (user.email.includes('@gmail.com') || user.email.includes('@googlemail.com'))) {
+                        method = 'Google';
+                        methodClass = 'method-google';
+                    }
+                }
                 
                 return `
                     <div class="user-card">

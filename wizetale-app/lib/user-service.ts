@@ -20,6 +20,7 @@ export interface UserProfile {
   emailVerified: boolean
   createdAt: any
   updatedAt: any
+  providerId?: string // Добавляем поле для хранения информации о провайдере
   bio?: string
   preferences?: {
     language?: string
@@ -128,7 +129,8 @@ export const createUserProfile = async (
   uid: string,
   email: string,
   username: string,
-  displayName?: string
+  displayName?: string,
+  providerId?: string
 ): Promise<void> => {
   try {
     const userRef = doc(db, 'users', uid)
@@ -137,9 +139,10 @@ export const createUserProfile = async (
       email: email.toLowerCase(),
       username: username.toLowerCase(),
       displayName: displayName || username,
-      emailVerified: false,
+      emailVerified: providerId === 'google.com', // Google пользователи автоматически верифицированы
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      providerId: providerId || 'password', // По умолчанию password для email регистрации
       preferences: {
         language: 'en',
         theme: 'light',
