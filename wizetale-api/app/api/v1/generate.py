@@ -16,7 +16,7 @@ import contextlib
 import asyncio
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from fastapi_cache.decorator import cache
+from fastapi_cache2.decorator import cache
 
 from app.celery_utils import celery_app
 from celery.result import AsyncResult
