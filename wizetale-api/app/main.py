@@ -14,9 +14,9 @@ from celery.result import AsyncResult
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi_cache2 import FastAPICache
-from fastapi_cache2.backends.redis import RedisBackend
-from fastapi_cache2.decorator import cache
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.decorator import cache
 
 # Load environment variables from .env file
 load_dotenv()
