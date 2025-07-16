@@ -3,6 +3,7 @@ import os
 import re
 import asyncio
 import firebase_admin
+import redis.asyncio as redis
 from firebase_admin import credentials
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Header
@@ -94,8 +95,13 @@ app.mount("/generated_images", StaticFiles(directory=str(generated_images_dir)),
 @app.on_event("startup")
 async def startup():
     """Initialize Redis cache on startup"""
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    FastAPICache.init(RedisBackend(redis_url), prefix="wizetale-cache")
+    try:
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        redis_client = redis.from_url(redis_url, decode_responses=True)
+        FastAPICache.init(RedisBackend(redis_client), prefix="wizetale-cache")
+        logging.info("✅ Redis cache initialized successfully.")
+    except Exception as e:
+        logging.warning(f"⚠️ Redis cache initialization failed: {e}. Running without cache.")
 
 @app.get("/static/{user_id}/{video_name}")
 async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
