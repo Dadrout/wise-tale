@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from pydantic import BaseModel
 from uuid import uuid4
 import os
@@ -14,6 +14,9 @@ import math
 import wave
 import contextlib
 import asyncio
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from fastapi_cache.decorator import cache
 
 from app.celery_utils import celery_app
 from celery.result import AsyncResult
@@ -33,6 +36,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["generate"])
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Define base directory for static files
 static_dir = Path("static")
@@ -672,7 +678,8 @@ def generate_story_video_task(self, request_data: dict, user_id: str):
 
 
 @router.post("/generate", response_model=TaskCreationResponse, status_code=202, dependencies=[Depends(verify_api_key)])
-async def create_generation_task(req: GenerateRequest, user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def create_generation_task(req: GenerateRequest, request: Request, user: dict = Depends(get_current_user)):
     """
     Creates a new background task for video generation.
     """
@@ -687,7 +694,9 @@ async def create_generation_task(req: GenerateRequest, user: dict = Depends(get_
     return TaskCreationResponse(task_id=task.id)
 
 @router.get("/tasks/{task_id}", status_code=200)
-async def get_task_status(task_id: str):
+@limiter.limit("30/minute")
+@cache(expire=10)  # Cache task status for 10 seconds
+async def get_task_status(task_id: str, request: Request):
     """
     Retrieves the status or result of a Celery task.
     """

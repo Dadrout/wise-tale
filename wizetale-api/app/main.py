@@ -11,8 +11,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from pathlib import Path
 from celery.result import AsyncResult
-from slowapi import Limiter
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.decorator import cache
 
 # Load environment variables from .env file
 load_dotenv()
@@ -39,7 +43,7 @@ from app.core.config import settings
 from app.api.v1 import generate
 from app.celery_utils import celery_app
 
-# Initialize Limiter
+# Initialize Limiter with stricter limits
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
@@ -49,6 +53,7 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS settings
 environment = os.getenv("ENVIRONMENT", "development")
@@ -85,6 +90,12 @@ app.mount("/generated_audio", StaticFiles(directory=str(generated_audio_dir)), n
 generated_images_dir = Path("generated_images")
 generated_images_dir.mkdir(exist_ok=True)
 app.mount("/generated_images", StaticFiles(directory=str(generated_images_dir)), name="generated_images")
+
+@app.on_event("startup")
+async def startup():
+    """Initialize Redis cache on startup"""
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    FastAPICache.init(RedisBackend(redis_url), prefix="wizetale-cache")
 
 @app.get("/static/{user_id}/{video_name}")
 async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
@@ -128,11 +139,13 @@ async def serve_video(user_id: str, video_name: str, range: str = Header(None)):
 app.include_router(generate.router, prefix="/api/v1")
 
 @app.get("/ping", status_code=200)
-async def ping():
+@limiter.limit("100/minute")
+async def ping(request: Request):
     return {"status": "pong"}
 
 @app.get("/health", status_code=200)
-async def health_check():
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     return {"status": "ok"}
 
 @app.websocket("/ws/status/{task_id}")

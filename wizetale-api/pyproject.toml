@@ -25,6 +25,8 @@ dependencies = [
     "openai",
     "azure-identity",
     "azure-cognitiveservices-speech",
+    "fastapi-cache2[redis]",
+    "psutil",
 ]
 
 [project.optional-dependencies]

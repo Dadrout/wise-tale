@@ -23,6 +23,6 @@ COPY time-capsule-d5a66-c542dacf194a.json /app/time-capsule-d5a66-c542dacf194a.j
 # Expose port and run
 EXPOSE 8000
 
-# Use a simple, direct gunicorn command to avoid config file issues
-# Start with 1 worker to ensure stability, can be increased later
-CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
+# Use optimized gunicorn configuration for production
+# Calculate workers based on CPU cores for better performance
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "app.main:app"]
