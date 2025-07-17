@@ -216,6 +216,7 @@ services:
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
+      - ./wizetale-app/public:/var/www/public
     depends_on:
       - api
       - frontend
