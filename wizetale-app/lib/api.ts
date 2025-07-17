@@ -3,7 +3,7 @@
 import { trackEvent } from './analytics';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || '';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface GenerateRequest {
   subject: string;
@@ -125,7 +125,7 @@ class ApiService {
 
   // Submit feedback
   async submitFeedback(feedback: FeedbackRequest): Promise<void> {
-    return this.request<void>('/api/feedback', {
+    return this.request<void>('/feedback', {
       method: 'POST',
       body: JSON.stringify(feedback),
     });
