@@ -499,8 +499,8 @@ Prompt (in English):
             # Apply Ken Burns before padding so zoom remains visible; increase zoom speed for clarity (≈20% over clip)
             filter_parts.append(
                 f"[{idx}:v]scale=1280:720:force_original_aspect_ratio=decrease,"
-                # Start at original size (1.0) and zoom in to 1.3 with slight diagonal pan. fps=25 guarantees frame duplication for still images.
-                f"zoompan=z='min(zoom+0.004,1.3)':fps=25:d={frames}:x='iw/2-(iw/zoom/2)+in*0.4':y='ih/2-(ih/zoom/2)+in*0.3':s=1280x720,"
+                # Start at original size (1.0) and zoom in to 1.1 with slight diagonal pan. fps=25 guarantees frame duplication for still images.
+                f"zoompan=z='min(zoom+0.002,1.1)':fps=25:d={frames}:x='iw/2-(iw/zoom/2)+in*0.2':y='ih/2-(ih/zoom/2)+in*0.15':s=1280x720,"
                 f"pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS[v{idx}]"
             )
 
