@@ -125,7 +125,7 @@ class ApiService {
 
   // Submit feedback
   async submitFeedback(feedback: FeedbackRequest): Promise<void> {
-    return this.request<void>('/landing/api/feedback', {
+    return this.request<void>('/api/feedback', {
       method: 'POST',
       body: JSON.stringify(feedback),
     });
