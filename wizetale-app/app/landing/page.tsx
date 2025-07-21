@@ -300,7 +300,7 @@ export default function LandingPage() {
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">{t.pricingSubtitle}</p>
             </div>
           </ScrollReveal>
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <ScrollReveal direction="left" delay={200}>
               <Card className="relative p-8 bg-white/80 dark:bg-gray-800/80 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-700 hover:scale-110 hover:shadow-2xl hover:-translate-y-4">
                 <CardContent className="pt-0">
@@ -341,7 +341,7 @@ export default function LandingPage() {
                     <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t.pricingPremiumTitle}</h3>
                     <div className="mb-4">
                       <span className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent">{t.pricingPremiumPrice}</span>
-                      <span className="text-gray-500 dark:text-gray-400">/month</span>
+                      <span className="text-gray-500 dark:text-gray-400">одноразово</span>
                     </div>
                     <p className="text-gray-600 dark:text-gray-300">{t.pricingPremiumDesc}</p>
                   </div>
@@ -361,33 +361,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             </ScrollReveal>
-            <ScrollReveal direction="right" delay={600}>
-              <Card className="relative p-8 bg-white/80 dark:bg-gray-800/80 border-2 border-teal-200 dark:border-teal-700 hover:border-teal-300 dark:hover:border-teal-600 transition-all duration-700 hover:scale-110 hover:shadow-2xl hover:-translate-y-4">
-                <CardContent className="pt-0">
-                  <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t.pricingFamilyTitle}</h3>
-                    <div className="mb-4">
-                      <span className="text-4xl font-bold text-teal-600">{t.pricingFamilyPrice}</span>
-                      <span className="text-gray-500 dark:text-gray-400">/month</span>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-300">{t.pricingFamilyDesc}</p>
-                  </div>
-                  <ul className="space-y-3 mb-8">
-                    {[t.pricingFamilyFeature1, t.pricingFamilyFeature2, t.pricingFamilyFeature3, t.pricingFamilyFeature4, t.pricingFamilyFeature5, t.pricingFamilyFeature6, t.pricingFamilyFeature7].map((feature, index) => (
-                      <li key={index} className="flex items-center">
-                        <CheckCircle className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href="/register">
-                    <Button variant="outline" className="w-full border-2 border-teal-200 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950 transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                      {t.pricingFamilyButton}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
+
           </div>
           <ScrollReveal direction="up" delay={800}>
             <div className="text-center mt-12">
@@ -402,28 +376,7 @@ export default function LandingPage() {
               </div>
             </div>
           </ScrollReveal>
-          <ScrollReveal direction="up" delay={1000}>
-            <div className="mt-12 max-w-4xl mx-auto">
-              <div className="bg-gradient-to-r from-sky-100 to-teal-100 dark:from-sky-900/30 dark:to-teal-900/30 rounded-2xl p-6 border border-sky-200 dark:border-sky-800 hover:scale-105 transition-all duration-500">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center">
-                    <div className="w-12 h-12 bg-sky-500 rounded-full flex items-center justify-center mr-4 hover:scale-125 transition-transform duration-300">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t.pricingEducatorsTitle}</h3>
-                      <p className="text-gray-600 dark:text-gray-300">{t.pricingEducatorsDesc}</p>
-                    </div>
-                  </div>
-                  <Link href="/register">
-                    <Button variant="outline" className="border-sky-300 dark:border-sky-700 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950 transition-all duration-300 hover:scale-110">
-                      {t.pricingEducatorsButton}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
+
         </section>
 
         <section id="testimonials" className="container mx-auto px-4 py-16 relative z-10" style={{ scrollMarginTop: "100px" }}>
