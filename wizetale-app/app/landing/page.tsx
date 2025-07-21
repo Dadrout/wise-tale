@@ -340,8 +340,16 @@ export default function LandingPage() {
                   <div className="text-center mb-6">
                     <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t.pricingPremiumTitle}</h3>
                     <div className="mb-4">
-                      <span className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent">{t.pricingPremiumPrice}</span>
-                      <span className="text-gray-500 dark:text-gray-400">одноразово</span>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Badge className="bg-red-500 text-white px-2 py-1 text-xs">
+                          {t.pricingDiscountBadge}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-2xl line-through text-gray-400">{t.pricingOriginalPrice}</span>
+                        <span className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent">{t.pricingPremiumPrice}</span>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t.pricingDiscountText}</p>
                     </div>
                     <p className="text-gray-600 dark:text-gray-300">{t.pricingPremiumDesc}</p>
                   </div>
