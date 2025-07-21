@@ -222,7 +222,7 @@ export default function LandingPage() {
           <ScrollReveal direction="up" delay={1100}>
             <div className="relative max-w-4xl mx-auto">
               <YouTubeEmbed
-                videoId="zL-Gxlwv4_k"
+                videoId="TP01eYjFcxU"
                 title="Wizetale Demo - Transform Learning into Magical Stories"
                 className="hover:scale-105 transition-all duration-700 hover:shadow-3xl"
               />
