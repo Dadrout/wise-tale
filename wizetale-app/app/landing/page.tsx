@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
 import Image from "next/image"
-import { PageLoader } from "@/components/page-loader"
+
 import { FloatingElements } from "@/components/floating-elements"
 import {
   BookOpen,
@@ -77,6 +77,8 @@ export default function LandingPage() {
                     width={40}
                     height={40}
                     className="w-10 h-10"
+                    priority
+                    sizes="40px"
                   />
                 </div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent transition-all duration-300 group-hover:from-purple-700 group-hover:to-teal-700">
@@ -117,7 +119,8 @@ export default function LandingPage() {
                   </Link>
                 </ScrollReveal>
               </div>
-              <div className="md:hidden">
+              <div className="md:hidden flex items-center gap-2">
+                <LanguageSwitcher />
                 <Button
                   variant="outline"
                   size="sm"
@@ -148,7 +151,6 @@ export default function LandingPage() {
                     </a>
                   ))}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <LanguageSwitcher />
                     <ThemeToggle />
                   </div>
                   <Link href="/register" className="w-full">
@@ -444,7 +446,15 @@ export default function LandingPage() {
               <div>
                 <div className="flex items-center space-x-3 mb-4 group">
                   <div className="transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12">
-                    <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={32} height={32} className="w-8 h-8" />
+                    <Image 
+                  src="/wisetale-logo.png" 
+                  alt="Wizetale Logo" 
+                  width={32} 
+                  height={32} 
+                  className="w-8 h-8"
+                  priority
+                  sizes="32px"
+                />
                   </div>
                   <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-teal-600 bg-clip-text text-transparent">Wizetale</span>
                 </div>

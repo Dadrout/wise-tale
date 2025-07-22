@@ -22,6 +22,9 @@ export interface UserProfile {
   updatedAt: any
   providerId?: string // Добавляем поле для хранения информации о провайдере
   bio?: string
+  isPremium?: boolean
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete'
+  subscriptionId?: string | null
   preferences?: {
     language?: string
     theme?: string

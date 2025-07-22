@@ -28,7 +28,7 @@ export function YouTubeEmbed({ videoId, title, className = "" }: YouTubeEmbedPro
             src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
             alt={title}
             className="w-full h-full object-cover"
-            loading="lazy"
+            loading="lazy" // Lazy load the image
           />
 
           {/* Play button overlay */}

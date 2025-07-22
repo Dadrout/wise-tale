@@ -9,10 +9,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
-    // Add image optimization for better performance
+    unoptimized: false, // Enable image optimization
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   // Enable standalone mode for Docker production builds
   output: 'standalone',
@@ -25,6 +26,9 @@ const nextConfig = {
     swcMinify: true,
     // Enable modern JavaScript features
     modern: true,
+    // Enable optimizations for better performance
+    optimizeCss: true,
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react', 'framer-motion'],
   },
   // Configure headers for OAuth popup compatibility and performance
   async headers() {
@@ -53,11 +57,33 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
         ],
       },
       // Cache static assets
       {
         source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache images
+      {
+        source: '/wisetale-logo.png',
         headers: [
           {
             key: 'Cache-Control',

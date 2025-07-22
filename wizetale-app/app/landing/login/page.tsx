@@ -5,17 +5,20 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/use-auth'
+import { useLanguage } from '@/hooks/use-language'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import { validateEmail } from '@/lib/user-service'
 
 export default function LoginPage() {
     const router = useRouter()
     const { signIn, loading, signInWithGoogle } = useAuth()
+    const { t } = useLanguage()
     
     const [formData, setFormData] = useState({
         email: '',
@@ -104,12 +107,20 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-teal-50 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-4">
-                        <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
+                    <div className="flex justify-center items-center gap-4 mb-4">
+                        <Image 
+          src="/wisetale-logo.png" 
+          alt="Wizetale Logo" 
+          width={48} 
+          height={48}
+          priority
+          sizes="48px"
+        />
+                        <LanguageSwitcher />
                     </div>
-                    <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                    <CardTitle className="text-2xl font-bold">{t.loginTitle}</CardTitle>
                     <CardDescription>
-                        Sign in to your account to continue
+                        {t.loginSubtitle}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -121,11 +132,11 @@ export default function LoginPage() {
                         )}
                         
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t.registerEmailLabel}</Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="john@example.com"
+                                placeholder={t.registerEmailPlaceholder}
                                 value={formData.email}
                                 onChange={handleInputChange('email')}
                                 className={fieldErrors.email ? 'border-red-500' : ''}
@@ -138,7 +149,7 @@ export default function LoginPage() {
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">{t.registerPasswordLabel}</Label>
                                 <Link 
                                     href="/reset-password" 
                                     className="text-sm text-purple-600 hover:underline"
@@ -179,7 +190,7 @@ export default function LoginPage() {
                                     Signing in...
                                 </>
                             ) : (
-                                'Sign in'
+                                t.loginButton
                             )}
                         </Button>
                     </form>
@@ -204,9 +215,9 @@ export default function LoginPage() {
                     </Button>
 
                     <p className="mt-6 text-center text-sm text-gray-600">
-                        Don't have an account?{' '}
+                        {t.loginRegisterPrompt}{' '}
                         <Link href="/landing/register" className="text-purple-600 hover:underline">
-                            Sign up
+                            {t.loginRegisterLink}
                         </Link>
                     </p>
                 </CardContent>

@@ -24,6 +24,17 @@ export default function RootLayout({
         <title>Wizetale - Transform Learning Into Magical Stories</title>
         <meta name="description" content="AI-powered educational storytelling platform that transforms complex humanities topics into engaging animated fairy tales for students aged 10-18." />
         <link rel="icon" href="/favicon.png" />
+        {/* Preload critical fonts */}
+        <link
+          rel="preload"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          as="style"
+        />
+        <link
+          rel="preload"
+          href="/wisetale-logo.png"
+          as="image"
+        />
       </head>
       <body
         className={

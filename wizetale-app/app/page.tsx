@@ -9,6 +9,7 @@ import { FloatingElements } from "@/components/floating-elements"
 import LanguageSelector from "@/components/language-selector"
 import { useLanguage } from "@/hooks/use-language"
 import { useAuth } from "@/hooks/use-auth"
+import { PremiumBadge } from "@/components/premium-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -167,14 +168,20 @@ export default function WizetaleApp() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={userProfile?.photoURL} />
+                        <AvatarImage 
+                  src={userProfile?.photoURL} 
+                  alt="Profile"
+                />
                         <AvatarFallback className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-                        {getUserDisplayName()}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
+                          {getUserDisplayName()}
+                        </span>
+                        <PremiumBadge isPremium={userProfile?.isPremium} />
+                      </div>
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     </Button>
                   </DropdownMenuTrigger>

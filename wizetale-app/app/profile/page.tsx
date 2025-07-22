@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
+import { useSubscription } from '@/hooks/use-subscription'
 import { updateUserProfile, validateUsername } from '@/lib/user-service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { SubscriptionCard } from '@/components/subscription-card'
+import { PremiumBadge } from '@/components/premium-badge'
 import { 
   User, 
   Mail, 
@@ -22,12 +25,15 @@ import {
   Check, 
   X,
   Camera,
-  Save
+  Save,
+  Crown
 } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, userProfile, refreshUserProfile, sendVerificationEmail } = useAuth()
+  const { createCheckoutSession, loading: subscriptionLoading } = useSubscription()
   
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -58,7 +64,20 @@ export default function ProfilePage() {
         bio: userProfile.bio || ''
       })
     }
-  }, [user, userProfile, router])
+
+    // Handle success/cancel messages from Stripe
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+    
+    if (success) {
+      setSuccess('Payment successful! You are now a premium member.')
+      refreshUserProfile()
+    }
+    
+    if (canceled) {
+      setError('Payment was canceled. Please try again.')
+    }
+  }, [user, userProfile, router, searchParams, refreshUserProfile])
 
   // Debounced username check
   useEffect(() => {
@@ -149,6 +168,7 @@ export default function ProfilePage() {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
         </TabsList>
 
@@ -169,7 +189,10 @@ export default function ProfilePage() {
 
               <div className="flex items-center gap-6">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={userProfile.photoURL} />
+                  <AvatarImage 
+                  src={userProfile.photoURL} 
+                  alt="Profile"
+                />
                   <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
                 </Avatar>
                 <Button variant="outline" size="sm" disabled>
@@ -248,6 +271,27 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="subscription" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-yellow-600" />
+                Subscription Status
+              </CardTitle>
+              <CardDescription>
+                Manage your premium subscription
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SubscriptionCard 
+                isPremium={userProfile?.isPremium}
+                onUpgrade={createCheckoutSession}
+                loading={subscriptionLoading}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="account" className="space-y-6">
           <Card>
             <CardHeader>
@@ -311,6 +355,21 @@ export default function ProfilePage() {
                     <p className="text-sm text-gray-600">
                       {userProfile.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
                     </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Crown className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium">Subscription Status</p>
+                    <div className="flex items-center gap-2">
+                      <PremiumBadge isPremium={userProfile.isPremium} />
+                      {userProfile.subscriptionStatus && (
+                        <span className="text-sm text-gray-600 capitalize">
+                          ({userProfile.subscriptionStatus})
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

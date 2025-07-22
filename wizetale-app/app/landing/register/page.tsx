@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/use-auth'
+import { useLanguage } from '@/hooks/use-language'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react'
 import { PasswordStrengthIndicator } from '@/components/password-strength-indicator'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import { 
   validateEmail, 
   validatePassword, 
@@ -21,6 +23,7 @@ import {
 export default function RegisterPage() {
     const router = useRouter()
     const { signUp, loading, signInWithGoogle } = useAuth()
+    const { t } = useLanguage()
     
     const [formData, setFormData] = useState({
         email: '',
@@ -157,12 +160,20 @@ export default function RegisterPage() {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-teal-50 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-4">
-                        <Image src="/wisetale-logo.png" alt="Wizetale Logo" width={48} height={48} />
+                    <div className="flex justify-center items-center gap-4 mb-4">
+                        <Image 
+          src="/wisetale-logo.png" 
+          alt="Wizetale Logo" 
+          width={48} 
+          height={48}
+          priority
+          sizes="48px"
+        />
+                        <LanguageSwitcher />
                     </div>
-                    <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+                    <CardTitle className="text-2xl font-bold">{t.registerTitle}</CardTitle>
                     <CardDescription>
-                        Enter your details to get started with Wizetale
+                        {t.registerSubtitle}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -201,11 +212,11 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t.registerEmailLabel}</Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="john@example.com"
+                                placeholder={t.registerEmailPlaceholder}
                                 value={formData.email}
                                 onChange={handleInputChange('email')}
                                 className={fieldErrors.email ? 'border-red-500' : ''}
@@ -232,7 +243,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">{t.registerPasswordLabel}</Label>
                             <div className="relative">
                                 <Input
                                     id="password"
@@ -291,7 +302,7 @@ export default function RegisterPage() {
                                     Creating account...
                                 </>
                             ) : (
-                                'Create account'
+                                t.registerButton
                             )}
                         </Button>
                     </form>
@@ -316,9 +327,9 @@ export default function RegisterPage() {
                     </Button>
 
                     <p className="mt-6 text-center text-sm text-gray-600">
-                        Already have an account?{' '}
+                        {t.registerLoginPrompt}{' '}
                         <Link href="/landing/login" className="text-purple-600 hover:underline">
-                            Sign in
+                            {t.registerLoginLink}
                         </Link>
                     </p>
                 </CardContent>
