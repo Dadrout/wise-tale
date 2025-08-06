@@ -187,7 +187,7 @@ export default function LoginPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Signing in...
+                                    {t.loginSigningIn}
                                 </>
                             ) : (
                                 t.loginButton
@@ -200,7 +200,7 @@ export default function LoginPage() {
                             <span className="w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                            <span className="bg-white px-2 text-gray-500">{t.orContinueWith}</span>
                         </div>
                     </div>
 

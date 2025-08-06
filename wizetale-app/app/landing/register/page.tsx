@@ -228,10 +228,10 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="displayName">Display Name (optional)</Label>
+                            <Label htmlFor="displayName">{t.registerDisplayNameLabel}</Label>
                             <Input
                                 id="displayName"
-                                placeholder="John Doe"
+                                placeholder="{t.registerDisplayNamePlaceholder}"
                                 value={formData.displayName}
                                 onChange={handleInputChange('displayName')}
                                 className={fieldErrors.displayName ? 'border-red-500' : ''}
@@ -268,7 +268,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">Confirm Password</Label>
+                            <Label htmlFor="confirmPassword">{t.registerConfirmPasswordLabel}</Label>
                             <div className="relative">
                                 <Input
                                     id="confirmPassword"
@@ -299,7 +299,7 @@ export default function RegisterPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
+                                    {t.registerCreatingAccount}
                                 </>
                             ) : (
                                 t.registerButton

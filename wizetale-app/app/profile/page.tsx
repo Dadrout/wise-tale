@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { updateUserProfile, validateUsername } from '@/lib/user-service'
@@ -27,7 +27,7 @@ import {
   Crown
 } from 'lucide-react'
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userProfile, refreshUserProfile, sendVerificationEmail } = useAuth()
@@ -370,5 +370,13 @@ export default function ProfilePage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProfilePageContent />
+    </Suspense>
   )
 } 

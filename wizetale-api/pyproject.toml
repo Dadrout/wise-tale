@@ -18,7 +18,6 @@ dependencies = [
     "google-cloud-texttospeech",
     "moviepy",
     "pillow",
-    "python-pexels",
     "firebase-admin",
     "slowapi",
     "pydantic-settings",

@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 
 class FirebaseService:
     def __init__(self):
-        # The app should be initialized in the main application entry point.
-        # This service will now assume the app is already initialized.
         try:
             self.db = firestore.client()
         except Exception as e:
@@ -18,7 +16,6 @@ class FirebaseService:
             self.db = None
     
     def verify_id_token(self, id_token: str) -> dict:
-        """Verifies the ID token and returns the decoded token."""
         if not firebase_admin._apps:
             msg = "Cannot verify token, Firebase not initialized."
             logger.error(f"❌ {msg}")
@@ -34,7 +31,6 @@ class FirebaseService:
             raise
 
     async def save_story_to_firestore(self, user_id: str, story_data: dict):
-        """Saves story generation details to Firestore."""
         if not self.db:
             msg = "Cannot save story, Firestore not initialized."
             logger.error(f"❌ {msg}")
@@ -42,7 +38,6 @@ class FirebaseService:
         
         def _save_sync():
             try:
-                # /users/{user_id}/stories/{story_id}
                 user_stories_ref = self.db.collection('users').document(user_id).collection('stories')
                 doc_ref = user_stories_ref.add(story_data)
                 logger.info(f"✅ Story data saved to Firestore for user {user_id} with doc ID: {doc_ref[1].id}")
@@ -55,8 +50,6 @@ class FirebaseService:
         return await loop.run_in_executor(None, _save_sync)
 
     async def upload_file(self, source_file_path: str, destination_blob_name: str) -> str:
-        """Uploads a file to the bucket asynchronously and returns its public URL."""
-
         def _upload_sync():
             if not firebase_admin._apps:
                 msg = "Cannot upload file, Firebase not initialized."
@@ -64,7 +57,6 @@ class FirebaseService:
                 raise ConnectionError(msg)
             
             try:
-                # Get bucket without gs:// prefix. Name is optional if initialized.
                 bucket = storage.bucket() 
                 logger.info(f"✅ Got bucket: {bucket.name}")
                 blob = bucket.blob(destination_blob_name)
@@ -72,17 +64,16 @@ class FirebaseService:
                 logger.info(f"📤 Uploading {source_file_path} to {destination_blob_name}...")
                 blob.upload_from_filename(source_file_path)
                 
-                # Make the blob publicly viewable
                 blob.make_public()
 
                 logger.info(f"✅ File {source_file_path} uploaded to {destination_blob_name}.")
                 return blob.public_url
             except Exception as e:
                 logger.error(f"❌ File upload to Firebase failed: {e}", exc_info=True)
-                raise # Re-raise the exception to be handled by the caller
+                raise
         
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, _upload_sync)
 
-
-firebase_service = FirebaseService() 
+# Create global instance
+firebase_service = FirebaseService()

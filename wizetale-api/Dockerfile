@@ -25,4 +25,6 @@ EXPOSE 8000
 
 # Use optimized gunicorn configuration for production
 # Calculate workers based on CPU cores for better performance
+COPY ci/pycheck.sh /ci/pycheck.sh
+RUN /ci/pycheck.sh
 CMD ["gunicorn", "-c", "gunicorn.conf.py", "app.main:app"]

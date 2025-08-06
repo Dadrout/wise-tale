@@ -8,7 +8,7 @@ import { LanguageContext, useLanguageState } from '@/hooks/use-language'
 import { AuthContext, useAuthState } from '@/hooks/use-auth'
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export default function RootLayout({
   children,

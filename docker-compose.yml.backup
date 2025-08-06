@@ -1,0 +1,234 @@
+services:
+  # Redis service
+  redis:
+    image: redis:7-alpine
+    container_name: wizetale-redis-prod
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # PostgreSQL service
+  postgres:
+    image: postgres:15-alpine
+    container_name: wizetale-postgres-prod
+    environment:
+      POSTGRES_DB: wizetale_db
+      POSTGRES_USER: wizetale_user
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # API service
+  api:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-api-prod
+    container_name: wizetale-api-prod
+    ports:
+      - "8000:8000"
+      - "8001:8000" # Временно открываем порт 8001 для теста
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUNWARE_API_KEY=Tr78HtnWmM1OtFhMROf9MQJBViFHcYgY
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+    # volumes:
+    #   - ./wizetale-api:/app
+
+  # Second API service for load balancing
+  api2:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-api-prod
+    container_name: wizetale-api-prod-2
+    ports:
+      - "8002:8000"
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUNWARE_API_KEY=Tr78HtnWmM1OtFhMROf9MQJBViFHcYgY
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+
+  # Third API service for additional load balancing
+  api3:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-api-prod
+    container_name: wizetale-api-prod-3
+    ports:
+      - "8003:8000"
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUNWARE_API_KEY=Tr78HtnWmM1OtFhMROf9MQJBViFHcYgY
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+
+  # Celery worker service  
+  celery-worker:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-celery-worker
+    container_name: wizetale-celery-worker
+    # Используем worker.py как точку входа для Celery
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+
+  # Second Celery worker for increased processing capacity
+  celery-worker-2:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-celery-worker
+    container_name: wizetale-celery-worker-2
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+
+  # Third Celery worker for maximum processing capacity
+  celery-worker-3:
+    build:
+      context: ./wizetale-api
+      dockerfile: Dockerfile
+    image: wizetale-celery-worker
+    container_name: wizetale-celery-worker-3
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DATABASE_URL=postgresql://wizetale_user:your_secure_password@postgres:5432/wizetale_db
+    volumes:
+      - static_files:/app/static
+      - ./wizetale-api/generated_audio:/app/generated_audio
+      - ./wizetale-api/generated_images:/app/generated_images
+      - ./wizetale-api/generated_videos:/app/generated_videos
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./wizetale-app
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
+    image: wizetale-frontend
+    container_name: wisetale-frontend
+    restart: always
+    depends_on:
+      - api
+
+  nginx:
+    container_name: wisetale-nginx
+    build:
+      context: ./nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - API_KEY=${API_KEY}
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    depends_on:
+      - api
+      - frontend
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  redis_data:
+  postgres_data:
+  static_files:

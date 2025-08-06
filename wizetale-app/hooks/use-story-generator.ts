@@ -35,10 +35,9 @@ export const useStoryGenerator = () => {
     return new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
         try {
-          const token = await getToken()
-          const headers: HeadersInit = { 'Content-Type': 'application/json' }
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`
+          const headers: HeadersInit = { 
+            'Content-Type': 'application/json',
+            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || ''
           }
 
           const res = await fetch(`${API_URL}/tasks/${taskId}`, { headers })
@@ -93,16 +92,14 @@ export const useStoryGenerator = () => {
     setResult(null)
 
     try {
-      const token = await getToken()
-      if (!token) {
-        throw new Error("Not authenticated")
-      }
+      // Removed token auth - using API key instead
+      // if (!token) { throw new Error("Not authenticated") }
 
       const response = await fetch(`${API_URL}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
         },
         body: JSON.stringify({ ...params, level: 'beginner' }),
       })

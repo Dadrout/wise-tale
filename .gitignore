@@ -83,3 +83,39 @@ build/
 .cache/
 *.db
 *.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node
+node_modules/
+.next/
+.cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Docker
+.docker/
+
+# Logs
+*.log
+
+# Generated files
+generated_images/
+static/generated/
+
+# Local development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# System files
+.DS_Store
+Thumbs.db

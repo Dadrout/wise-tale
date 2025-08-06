@@ -224,7 +224,7 @@ export default function WizetaleApp() {
       </header>
 
       {/* Animated background icons */}
-      <FloatingElements />
+      {/* <FloatingElements /> */}
 
       {/* Main Content */}
       <div className="py-12 sm:py-16">

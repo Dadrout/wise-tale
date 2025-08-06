@@ -54,52 +54,58 @@ export const useAuthState = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser)
-      
-      if (firebaseUser) {
-        // Load user profile from Firestore
-        const profile = await getUserProfile(firebaseUser.uid)
-        setUserProfile(profile)
+    if (auth) {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setUser(firebaseUser)
         
-        // If profile doesn't exist (e.g., after Google sign-in), create a basic one
-        if (!profile && firebaseUser.email) {
-          const username = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '')
-          const providerId = firebaseUser.providerData.length > 0 ? 
-            firebaseUser.providerData[0].providerId : 'password'
+        if (firebaseUser) {
+          // Load user profile from Firestore
+          const profile = await getUserProfile(firebaseUser.uid)
+          setUserProfile(profile)
           
-          await createUserProfile(
-            firebaseUser.uid,
-            firebaseUser.email,
-            username,
-            firebaseUser.displayName || undefined,
-            providerId
-          )
-          const newProfile = await getUserProfile(firebaseUser.uid)
-          setUserProfile(newProfile)
+          // If profile doesn't exist (e.g., after Google sign-in), create a basic one
+          if (!profile && firebaseUser.email) {
+            const username = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '')
+            const providerId = firebaseUser.providerData.length > 0 ? 
+              firebaseUser.providerData[0].providerId : 'password'
+            
+            await createUserProfile(
+              firebaseUser.uid,
+              firebaseUser.email,
+              username,
+              firebaseUser.displayName || undefined,
+              providerId
+            )
+            const newProfile = await getUserProfile(firebaseUser.uid)
+            setUserProfile(newProfile)
+          }
+        } else {
+          setUserProfile(null)
         }
-      } else {
-        setUserProfile(null)
-      }
-      
+        
+        setLoading(false)
+      })
+
+      // Check for redirect result when component mounts
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result?.user) {
+            trackEvent('login_google_redirect')
+          }
+        })
+        .catch((error) => {
+          console.error('Redirect result error:', error)
+        })
+
+      return unsubscribe
+    } else {
+      // Handle the case where auth is null on the server-side
       setLoading(false)
-    })
-
-    // Check for redirect result when component mounts
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          trackEvent('login_google_redirect')
-        }
-      })
-      .catch((error) => {
-        console.error('Redirect result error:', error)
-      })
-
-    return unsubscribe
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth not initialized");
     setLoading(true)
     try {
       const result = await signInWithEmailAndPassword(auth, email, password)
@@ -124,6 +130,7 @@ export const useAuthState = () => {
     username: string, 
     displayName?: string
   ) => {
+    if (!auth) throw new Error("Auth not initialized");
     setLoading(true)
     try {
       // Create Firebase auth user
@@ -162,7 +169,7 @@ export const useAuthState = () => {
   }
 
   const getToken = async (): Promise<string | null> => {
-    if (!auth.currentUser) return null
+    if (!auth?.currentUser) return null
     try {
       return await auth.currentUser.getIdToken()
     } catch (error) {
@@ -172,6 +179,7 @@ export const useAuthState = () => {
   }
 
   const signInWithGoogle = async () => {
+    if (!auth) throw new Error("Auth not initialized");
     setLoading(true)
     try {
       const provider = new GoogleAuthProvider()
@@ -234,7 +242,7 @@ export const useAuthState = () => {
   }
 
   const sendVerificationEmail = async () => {
-    if (!auth.currentUser) {
+    if (!auth?.currentUser) {
       throw new Error('No user logged in')
     }
     
@@ -248,6 +256,7 @@ export const useAuthState = () => {
   }
 
   const resetPassword = async (email: string) => {
+    if (!auth) throw new Error("Auth not initialized");
     try {
       await sendPasswordResetEmail(auth, email)
       trackEvent('password_reset_requested')
@@ -258,7 +267,7 @@ export const useAuthState = () => {
   }
 
   const refreshUserProfile = async () => {
-    if (auth.currentUser) {
+    if (auth?.currentUser) {
       await auth.currentUser.reload()
       // The onAuthStateChanged listener will automatically pick up the change
       // in emailVerified status and update the user state.
@@ -267,6 +276,7 @@ export const useAuthState = () => {
   }
 
   const logout = async () => {
+    if (!auth) throw new Error("Auth not initialized");
     setLoading(true)
     try {
       await signOut(auth)
@@ -293,4 +303,4 @@ export const useAuthState = () => {
     resetPassword,
     refreshUserProfile
   }
-} 
+}
